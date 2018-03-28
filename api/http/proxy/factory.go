@@ -19,7 +19,7 @@ type proxyFactory struct {
 	DockerHubService       portainer.DockerHubService
 }
 
-func (factory *proxyFactory) newExtensionHTTPPRoxy(u *url.URL) http.Handler {
+func (factory *proxyFactory) newHTTPPRoxy(u *url.URL) http.Handler {
 	u.Scheme = "http"
 	return newSingleHostReverseProxyWithHostHeader(u)
 }
