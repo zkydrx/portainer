@@ -108,18 +108,21 @@ function ($scope, $q, $state, $transition$, $anchorScroll, $filter, ContainerSer
       }
     }
 
-    StackService.createStackFromGitRepository(stackName, template.Repository.url, template.Repository.stackfile, template.Env)
-    .then(function success() {
-      Notifications.success('Stack successfully created');
-    })
-    .catch(function error(err) {
-      Notifications.warning('Deployment error', err.err.data.err);
-    })
+    var repositoryOptions = {
+      RepositoryURL: template.Repository.url,
+      ComposeFilePathInRepository: template.Repository.stackfile
+    };
+
+    StackService.createStackFromGitRepository(stackName, repositoryOptions, template.Env)
     .then(function success(data) {
       return ResourceControlService.applyResourceControl('stack', stackName, userId, accessControlData, []);
     })
     .then(function success() {
-      $state.go('docker.stacks', {}, {reload: true});
+      Notifications.success('Stack successfully deployed');
+      $state.go('docker.stacks');
+    })
+    .catch(function error(err) {
+      Notifications.warning('Deployment error', err.err.data.err);
     })
     .finally(function final() {
       $scope.state.actionInProgress = false;
@@ -176,6 +179,12 @@ function ($scope, $q, $state, $transition$, $anchorScroll, $filter, ContainerSer
       $scope.formValues.network = _.find($scope.availableNetworks, function(o) { return o.Name === selectedTemplate.Network; });
     } else {
       $scope.formValues.network = _.find($scope.availableNetworks, function(o) { return o.Name === 'bridge'; });
+    }
+
+    if (selectedTemplate.Name) {
+      $scope.formValues.name = selectedTemplate.Name;
+    } else {
+      $scope.formValues.name = '';
     }
 
     $anchorScroll('view-top');
