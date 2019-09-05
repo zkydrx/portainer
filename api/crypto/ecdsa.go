@@ -3,12 +3,13 @@ package crypto
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/md5"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"math/big"
+
+	"github.com/portainer/libcrypto"
 )
 
 const (
@@ -27,6 +28,15 @@ type ECDSAService struct {
 	privateKey    *ecdsa.PrivateKey
 	publicKey     *ecdsa.PublicKey
 	encodedPubKey string
+	secret        string
+}
+
+// NewECDSAService returns a pointer to a ECDSAService.
+// An optional secret can be specified
+func NewECDSAService(secret string) *ECDSAService {
+	return &ECDSAService{
+		secret: secret,
+	}
 }
 
 // EncodedPublicKey returns the encoded version of the public that can be used
@@ -92,14 +102,18 @@ func (service *ECDSAService) GenerateKeyPair() ([]byte, []byte, error) {
 	return private, public, nil
 }
 
-// Sign creates a signature from a message.
-// It automatically hash the message using MD5 and creates a signature from
+// CreateSignature creates a digital signature.
+// It automatically hash a specific message using MD5 and creates a signature from
 // that hash.
+// If a secret is associated to the service, it will be used instead of the specified
+// message.
 // It then encodes the generated signature in base64.
-func (service *ECDSAService) Sign(message string) (string, error) {
-	digest := md5.New()
-	digest.Write([]byte(message))
-	hash := digest.Sum(nil)
+func (service *ECDSAService) CreateSignature(message string) (string, error) {
+	if service.secret != "" {
+		message = service.secret
+	}
+
+	hash := libcrypto.HashFromBytes([]byte(message))
 
 	r := big.NewInt(0)
 	s := big.NewInt(0)

@@ -1,3 +1,7 @@
+import _ from 'lodash-es';
+import { UserViewModel } from '../../models/user';
+import { TeamMembershipModel } from '../../models/teamMembership';
+
 angular.module('portainer.app')
 .factory('UserService', ['$q', 'Users', 'UserHelper', 'TeamService', 'TeamMembershipService', function UserServiceFactory($q, Users, UserHelper, TeamService, TeamMembershipService) {
   'use strict';
@@ -41,7 +45,13 @@ angular.module('portainer.app')
   service.createUser = function(username, password, role, teamIds) {
     var deferred = $q.defer();
 
-    Users.create({}, {username: username, password: password, role: role}).$promise
+    var payload = {
+      username: username,
+      password: password,
+      role: role
+    };
+
+    Users.create({}, payload).$promise
     .then(function success(data) {
       var userId = data.Id;
       var teamMembershipQueries = [];
@@ -73,24 +83,12 @@ angular.module('portainer.app')
   };
 
   service.updateUserPassword = function(id, currentPassword, newPassword) {
-    var deferred = $q.defer();
+    var payload = {
+      Password: currentPassword,
+      NewPassword: newPassword
+    };
 
-    Users.checkPassword({id: id}, {password: currentPassword}).$promise
-    .then(function success(data) {
-      if (!data.valid) {
-        deferred.reject({invalidPassword: true});
-      } else {
-        return service.updateUser(id, newPassword, undefined);
-      }
-    })
-    .then(function success(data) {
-      deferred.resolve();
-    })
-    .catch(function error(err) {
-      deferred.reject({msg: 'Unable to update user password', err: err});
-    });
-
-    return deferred.promise;
+    return Users.updatePassword({ id: id }, payload).$promise;
   };
 
   service.userMemberships = function(id) {
@@ -142,7 +140,7 @@ angular.module('portainer.app')
     var deferred = $q.defer();
 
     Users.checkAdminUser({}).$promise
-    .then(function success(data) {
+    .then(function success() {
       deferred.resolve(true);
     })
     .catch(function error(err) {

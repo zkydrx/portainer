@@ -1,5 +1,5 @@
 <rd-header>
-  <rd-header-title title="Swarm visualizer">
+  <rd-header-title title-text="Swarm visualizer">
     <a data-toggle="tooltip" title="Refresh" ui-sref="docker.swarm.visualizer" ui-sref-opts="{reload: true}">
       <i class="fa fa-sync" aria-hidden="true"></i>
     </a>
@@ -12,7 +12,7 @@
 <div class="row">
   <div class="col-sm-12">
     <rd-widget>
-      <rd-widget-header icon="fa-object-group" title="Cluster information">
+      <rd-widget-header icon="fa-object-group" title-text="Cluster information">
         <div class="pull-right">
           <button type="button" class="btn btn-sm btn-primary" ng-click="changeShowInformationPanel(true)" ng-if="!state.ShowInformationPanel">Show</button>
           <button type="button" class="btn btn-sm btn-primary" ng-click="changeShowInformationPanel(false)" ng-if="state.ShowInformationPanel">Hide</button>
@@ -37,7 +37,7 @@
         </table>
         <form class="form-horizontal">
           <div class="col-sm-12 form-section-title">
-            Filters
+            Options
           </div>
           <div class="form-group">
             <div class="col-sm-12">
@@ -46,6 +46,14 @@
               </label>
               <label class="switch" style="margin-left: 20px;">
                 <input type="checkbox" ng-model="state.DisplayOnlyRunningTasks" ng-change="changeDisplayOnlyRunningTasks()"><i></i>
+              </label>
+            </div>
+            <div class="col-sm-12">
+              <label class="control-label text-left">
+                Display node labels
+              </label>
+              <label class="switch" style="margin-left: 20px;">
+                <input type="checkbox" ng-model="state.DisplayNodeLabels" ng-change="changeDisplayNodeLabels()"><i></i>
               </label>
             </div>
           </div>
@@ -77,14 +85,14 @@
 <div class="row" ng-if="visualizerData">
   <div class="col-sm-12">
     <rd-widget>
-      <rd-widget-header icon="fa-object-group" title="Cluster visualizer"></rd-widget-header>
+      <rd-widget-header icon="fa-object-group" title-text="Cluster visualizer"></rd-widget-header>
       <rd-widget-body>
         <div class="visualizer_container">
-          <div class="node" ng-repeat="node in visualizerData.nodes track by $index">
+          <div class="node" ng-repeat="node in visualizerData.nodes | orderBy : ['Role', 'Hostname'] track by $index">
             <div class="node_info">
               <div>
                 <div>
-                  <b>{{ node.Hostname }}</b>
+                  <b>{{ node.Name || node.Hostname }}</b>
                   <span class="node_platform">
                     <i class="fab fa-linux" aria-hidden="true" ng-if="node.PlatformOS === 'linux'"></i>
                     <i class="fab fa-windows" aria-hidden="true" ng-if="node.PlatformOS === 'windows'"></i>
@@ -95,9 +103,20 @@
               <div>CPU: {{ node.CPUs / 1000000000 }}</div>
               <div>Memory: {{ node.Memory|humansize: 2 }}</div>
               <div><span class="label label-{{ node.Status | nodestatusbadge }}">{{ node.Status }}</span></div>
+              <div class="node_labels" ng-if="node.Labels.length > 0 && state.DisplayNodeLabels">
+                <div>Labels</div>
+                <div class="node_label" ng-repeat="label in node.Labels">
+                  <span class="label_key">
+                    {{ label.key }}
+                  </span>
+                  <span class="label_value" ng-if="label.value">
+                    = {{ label.value }}
+                  </span>
+                </div>
+              </div>
             </div>
             <div class="tasks">
-              <div class="task task_{{ task.Status.State | visualizerTask }}" style="border: 2px solid {{ task.ServiceId | visualizerTaskBorderColor }}" ng-repeat="task in node.Tasks | filter: (state.DisplayOnlyRunningTasks || '') && { Status: { State: 'running' } }">
+              <div class="task task_{{ task.Status.State | visualizerTask }}" style="border: 2px solid {{ task.ServiceId | visualizerTaskBorderColor }}" ng-repeat="task in node.Tasks | orderBy: 'ServiceName' | filter: (state.DisplayOnlyRunningTasks || '') && { Status: { State: 'running' } }">
                 <div class="service_name">{{ task.ServiceName }}</div>
                 <div>Image: {{ task.Spec.ContainerSpec.Image | hideshasum }}</div>
                 <div>Status: {{ task.Status.State }}</div>

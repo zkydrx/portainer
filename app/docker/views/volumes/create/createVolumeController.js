@@ -1,3 +1,6 @@
+import { AccessControlFormData } from '../../../../portainer/components/accessControlForm/porAccessControlFormModel';
+import { VolumesNFSFormData } from '../../../components/volumesNFSForm/volumesNFSFormModel';
+
 angular.module('portainer.docker')
 .controller('CreateVolumeController', ['$q', '$scope', '$state', 'VolumeService', 'PluginService', 'ResourceControlService', 'Authentication', 'Notifications', 'FormValidator', 'HttpRequestHelper',
 function ($q, $scope, $state, VolumeService, PluginService, ResourceControlService, Authentication, Notifications, FormValidator, HttpRequestHelper) {
@@ -6,7 +9,8 @@ function ($q, $scope, $state, VolumeService, PluginService, ResourceControlServi
     Driver: 'local',
     DriverOptions: [],
     AccessControlData: new AccessControlFormData(),
-    NodeName: null
+    NodeName: null,
+    NFSData: new VolumesNFSFormData()
   };
 
   $scope.state = {
@@ -36,8 +40,19 @@ function ($q, $scope, $state, VolumeService, PluginService, ResourceControlServi
     return true;
   }
 
-  $scope.create = function () {
+  function prepareNFSConfiguration(driverOptions) {
+    var data = $scope.formValues.NFSData;
 
+    driverOptions.push({ name: 'type', value: data.version.toLowerCase() });
+
+    var options = 'addr=' + data.serverAddress + ',' + data.options;
+    driverOptions.push({ name: 'o', value: options });
+
+    var mountPoint = data.mountPoint[0] === ':' ? data.mountPoint : ':' + data.mountPoint;
+    driverOptions.push({ name: 'device', value: mountPoint });
+  }
+
+  $scope.create = function () {
     var name = $scope.formValues.Name;
     var driver = $scope.formValues.Driver;
     var driverOptions = $scope.formValues.DriverOptions;
@@ -47,10 +62,14 @@ function ($q, $scope, $state, VolumeService, PluginService, ResourceControlServi
       driverOptions.push({ name: 'profile', value: storidgeProfile.Name });
     }
 
+    if ($scope.formValues.NFSData.useNFS) {
+      prepareNFSConfiguration(driverOptions);
+    }
+
     var volumeConfiguration = VolumeService.createVolumeConfiguration(name, driver, driverOptions);
     var accessControlData = $scope.formValues.AccessControlData;
     var userDetails = Authentication.getUserDetails();
-    var isAdmin = userDetails.role === 1;
+    var isAdmin = Authentication.isAdmin();
 
     if (!validateForm(accessControlData, isAdmin)) {
       return;
@@ -66,7 +85,7 @@ function ($q, $scope, $state, VolumeService, PluginService, ResourceControlServi
       var userId = userDetails.ID;
       return ResourceControlService.applyResourceControl('volume', volumeIdentifier, userId, accessControlData, []);
     })
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('Volume successfully created');
       $state.go('docker.volumes', {}, {reload: true});
     })

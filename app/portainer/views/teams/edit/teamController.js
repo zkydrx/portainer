@@ -6,6 +6,7 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
     pagination_count_users: PaginationService.getPaginationLimit('team_available_users'),
     pagination_count_members: PaginationService.getPaginationLimit('team_members')
   };
+
   $scope.sortTypeUsers = 'Username';
   $scope.sortReverseUsers = true;
   $scope.users = [];
@@ -45,7 +46,7 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
 
   $scope.promoteToLeader = function(user) {
     TeamMembershipService.updateMembership(user.MembershipId, user.Id, $scope.team.Id, 1)
-    .then(function success(data) {
+    .then(function success() {
       $scope.leaderCount++;
       user.TeamRole = 'Leader';
       Notifications.success('User is now team leader', user.Username);
@@ -57,7 +58,7 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
 
   $scope.demoteToMember = function(user) {
     TeamMembershipService.updateMembership(user.MembershipId, user.Id, $scope.team.Id, 2)
-    .then(function success(data) {
+    .then(function success() {
       user.TeamRole = 'Member';
       $scope.leaderCount--;
       Notifications.success('User is now team member', user.Username);
@@ -109,9 +110,10 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
       teamMembershipQueries.push(TeamMembershipService.deleteMembership(user.MembershipId));
     });
     $q.all(teamMembershipQueries)
-    .then(function success(data) {
+    .then(function success() {
       $scope.users = $scope.users.concat($scope.teamMembers);
       $scope.teamMembers = [];
+      $scope.leaderCount = 0;
       Notifications.success('All users successfully removed');
     })
     .catch(function error(err) {
@@ -123,6 +125,9 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
     TeamMembershipService.deleteMembership(user.MembershipId)
     .then(function success() {
       removeUserFromArray(user.Id, $scope.teamMembers);
+      if (user.TeamRole === 'Leader') {
+        $scope.leaderCount--;
+      }
       $scope.users.push(user);
       Notifications.success('User removed from team', user.Username);
     })
@@ -133,7 +138,7 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
 
   function deleteTeam() {
     TeamService.deleteTeam($scope.team.Id)
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('Team successfully deleted', $scope.team.Name);
       $state.go('portainer.teams');
     })
@@ -177,7 +182,7 @@ function ($q, $scope, $state, $transition$, TeamService, UserService, TeamMember
   }
 
   function initView() {
-    $scope.isAdmin = Authentication.getUserDetails().role === 1 ? true: false;
+    $scope.isAdmin = Authentication.isAdmin();
     $q.all({
       team: TeamService.team($transition$.params().id),
       users: UserService.users(false),

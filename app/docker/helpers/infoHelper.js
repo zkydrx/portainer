@@ -1,3 +1,5 @@
+import _ from 'lodash-es';
+
 angular.module('portainer.docker')
 .factory('InfoHelper', [function InfoHelperFactory() {
   'use strict';
@@ -11,11 +13,8 @@ angular.module('portainer.docker')
       agentProxy: false
     };
 
-    if (type === 2) {
-      mode.provider = 'DOCKER_SWARM_MODE';
-      mode.role = 'MANAGER';
+    if (type === 2 || type === 4) {
       mode.agentProxy = true;
-      return mode;
     }
 
     if (!info.Swarm || _.isEmpty(info.Swarm.NodeID)) {

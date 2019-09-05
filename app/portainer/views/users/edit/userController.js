@@ -1,6 +1,6 @@
 angular.module('portainer.app')
-.controller('UserController', ['$q', '$scope', '$state', '$transition$', 'UserService', 'ModalService', 'Notifications', 'SettingsService',
-function ($q, $scope, $state, $transition$, UserService, ModalService, Notifications, SettingsService) {
+.controller('UserController', ['$q', '$scope', '$state', '$transition$', 'UserService', 'ModalService', 'Notifications', 'SettingsService', 'Authentication',
+function ($q, $scope, $state, $transition$, UserService, ModalService, Notifications, SettingsService, Authentication) {
 
   $scope.state = {
     updatePasswordError: ''
@@ -24,8 +24,8 @@ function ($q, $scope, $state, $transition$, UserService, ModalService, Notificat
 
   $scope.updatePermissions = function() {
     var role = $scope.formValues.Administrator ? 1 : 2;
-    UserService.updateUser($scope.user.Id, undefined, role)
-    .then(function success(data) {
+    UserService.updateUser($scope.user.Id, undefined, role, 0)
+    .then(function success() {
       var newRole = role === 1 ? 'administrator' : 'user';
       Notifications.success('Permissions successfully updated', $scope.user.Username + ' is now ' + newRole);
       $state.reload();
@@ -36,8 +36,8 @@ function ($q, $scope, $state, $transition$, UserService, ModalService, Notificat
   };
 
   $scope.updatePassword = function() {
-    UserService.updateUser($scope.user.Id, $scope.formValues.newPassword, undefined)
-    .then(function success(data) {
+    UserService.updateUser($scope.user.Id, $scope.formValues.newPassword, undefined, -1)
+    .then(function success() {
       Notifications.success('Password successfully updated');
       $state.reload();
     })
@@ -48,7 +48,7 @@ function ($q, $scope, $state, $transition$, UserService, ModalService, Notificat
 
   function deleteUser() {
     UserService.deleteUser($scope.user.Id)
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('User successfully deleted', $scope.user.Username);
       $state.go('portainer.users');
     })
@@ -58,6 +58,8 @@ function ($q, $scope, $state, $transition$, UserService, ModalService, Notificat
   }
 
   function initView() {
+    $scope.isAdmin = Authentication.isAdmin();
+
     $q.all({
       user: UserService.user($transition$.params().id),
       settings: SettingsService.publicSettings()
@@ -65,7 +67,7 @@ function ($q, $scope, $state, $transition$, UserService, ModalService, Notificat
     .then(function success(data) {
       var user = data.user;
       $scope.user = user;
-      $scope.formValues.Administrator = user.Role === 1 ? true : false;
+      $scope.formValues.Administrator = user.Role === 1;
       $scope.AuthenticationMethod = data.settings.AuthenticationMethod;
     })
     .catch(function error(err) {

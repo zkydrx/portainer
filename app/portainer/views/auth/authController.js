@@ -1,7 +1,8 @@
-angular.module('portainer.app')
-.controller('AuthenticationController', ['$scope', '$state', '$transition$', '$window', '$timeout', '$sanitize', 'Authentication', 'Users', 'UserService', 'EndpointService', 'StateManager', 'EndpointProvider', 'Notifications', 'SettingsService', 'ExtensionManager',
-function ($scope, $state, $transition$, $window, $timeout, $sanitize, Authentication, Users, UserService, EndpointService, StateManager, EndpointProvider, Notifications, SettingsService, ExtensionManager) {
+import uuidv4 from 'uuid/v4';
 
+angular.module('portainer.app')
+.controller('AuthenticationController', ['$async', '$q', '$scope', '$state', '$stateParams', '$sanitize', 'Authentication', 'UserService', 'EndpointService', 'ExtensionService', 'StateManager', 'Notifications', 'SettingsService', 'URLHelper', 'LocalStorage',
+function($async, $q, $scope, $state, $stateParams, $sanitize, Authentication, UserService, EndpointService, ExtensionService, StateManager, Notifications, SettingsService, URLHelper, LocalStorage) {
   $scope.logo = StateManager.getState().application.logo;
 
   $scope.formValues = {
@@ -10,36 +11,64 @@ function ($scope, $state, $transition$, $window, $timeout, $sanitize, Authentica
   };
 
   $scope.state = {
-    AuthenticationError: ''
+    AuthenticationError: '',
+    isInOAuthProcess: true,
+    OAuthProvider: ''
   };
 
-  function setActiveEndpointAndRedirectToDashboard(endpoint) {
-    var endpointID = EndpointProvider.endpointID();
-    if (!endpointID) {
-      EndpointProvider.setEndpointID(endpoint.Id);
-    }
-
-    ExtensionManager.initEndpointExtensions(endpoint.Id)
-    .then(function success(data) {
-      var extensions = data;
-      return StateManager.updateEndpointState(true, endpoint.Type, extensions);
-    })
-    .then(function success(data) {
-      $state.go('docker.dashboard');
-    })
-    .catch(function error(err) {
-      Notifications.error('Failure', err, 'Unable to connect to the Docker endpoint');
-    });
+  function retrieveAndSaveEnabledExtensions() {
+    return $async(retrieveAndSaveEnabledExtensionsAsync);
   }
 
+  async function retrieveAndSaveEnabledExtensionsAsync() {
+    try {
+      await ExtensionService.retrieveAndSaveEnabledExtensions();
+    } catch (err) {
+      Notifications.error('Failure', err, 'Unable to retrieve enabled extensions');
+      $scope.state.loginInProgress = false;
+    }
+  }
+
+  $scope.authenticateUser = function() {
+    var username = $scope.formValues.Username;
+    var password = $scope.formValues.Password;
+    $scope.state.loginInProgress = true;
+
+    Authentication.login(username, password)
+    .then(function success() {
+      return retrieveAndSaveEnabledExtensions();
+    })
+    .then(function () {
+      checkForEndpoints();
+    })
+    .catch(function error() {
+      SettingsService.publicSettings()
+      .then(function success(settings) {
+        if (settings.AuthenticationMethod === 1) {
+          return Authentication.login($sanitize(username), $sanitize(password));
+        }
+        return $q.reject();
+      })
+      .then(function success() {
+        return retrieveAndSaveEnabledExtensions();
+      })
+      .then(function() {
+        $state.go('portainer.updatePassword');
+      })
+      .catch(function error() {
+        $scope.state.AuthenticationError = 'Invalid credentials';
+        $scope.state.loginInProgress = false;
+      });
+    });
+  };
+
   function unauthenticatedFlow() {
-    EndpointService.endpoints()
-    .then(function success(data) {
-      var endpoints = data;
-      if (endpoints.length > 0)  {
-        setActiveEndpointAndRedirectToDashboard(endpoints[0]);
-      } else {
+    EndpointService.endpoints(0, 100)
+    .then(function success(endpoints) {
+      if (endpoints.value.length === 0) {
         $state.go('portainer.init.endpoint');
+      } else {
+        $state.go('portainer.home');
       }
     })
     .catch(function error(err) {
@@ -59,48 +88,64 @@ function ($scope, $state, $transition$, $window, $timeout, $sanitize, Authentica
     });
   }
 
-  $scope.authenticateUser = function() {
-    var username = $scope.formValues.Username;
-    var password = $scope.formValues.Password;
+  function checkForEndpoints() {
+    EndpointService.endpoints(0, 100)
+    .then(function success(data) {
+      var endpoints = data.value;
 
-    SettingsService.publicSettings()
-    .then(function success(data) {
-      var settings = data;
-      if (settings.AuthenticationMethod === 1) {
-        username = $sanitize(username);
-        password = $sanitize(password);
-      }
-      return Authentication.login(username, password);
-    })
-    .then(function success() {
-      return EndpointService.endpoints();
-    })
-    .then(function success(data) {
-      var endpoints = data;
-      var userDetails = Authentication.getUserDetails();
-      if (endpoints.length > 0)  {
-        setActiveEndpointAndRedirectToDashboard(endpoints[0]);
-      } else if (endpoints.length === 0 && userDetails.role === 1) {
+      if (endpoints.length === 0 && Authentication.isAdmin()) {
         $state.go('portainer.init.endpoint');
-      } else if (endpoints.length === 0 && userDetails.role === 2) {
-        Authentication.logout();
-        $scope.state.AuthenticationError = 'User not allowed. Please contact your administrator.';
+      } else {
+        $state.go('portainer.home');
       }
     })
-    .catch(function error() {
-      $scope.state.AuthenticationError = 'Invalid credentials';
+    .catch(function error(err) {
+      Notifications.error('Failure', err, 'Unable to retrieve endpoints');
+      $scope.state.loginInProgress = false;
     });
-  };
+  }
+
+  function determineOauthProvider(LoginURI) {
+    if (LoginURI.indexOf('login.microsoftonline.com') !== -1) {
+      return 'Microsoft';
+    }
+    else if (LoginURI.indexOf('accounts.google.com') !== -1) {
+      return 'Google';
+    }
+    else if (LoginURI.indexOf('github.com') !== -1) {
+      return 'Github';
+    }
+    return 'OAuth';
+  }
+
+  function generateState() {
+    const uuid = uuidv4();
+    LocalStorage.storeLoginStateUUID(uuid);
+    return '&state=' + uuid;
+  }
+
+  function hasValidState(state) {
+    const savedUUID = LocalStorage.getLoginStateUUID();
+    return savedUUID === state;
+  }
 
   function initView() {
-    if ($transition$.params().logout || $transition$.params().error) {
+    SettingsService.publicSettings()
+    .then(function success(settings) {
+      $scope.AuthenticationMethod = settings.AuthenticationMethod;
+      $scope.state.OAuthProvider = determineOauthProvider(settings.OAuthLoginURI);
+      $scope.OAuthLoginURI = settings.OAuthLoginURI + generateState();
+    });
+
+    if ($stateParams.logout || $stateParams.error) {
       Authentication.logout();
-      $scope.state.AuthenticationError = $transition$.params().error;
+      $scope.state.AuthenticationError = $stateParams.error;
+      $scope.state.isInOAuthProcess = false;
       return;
     }
 
     if (Authentication.isAuthenticated()) {
-      $state.go('docker.dashboard');
+      $state.go('portainer.home');
     }
 
     var authenticationEnabled = $scope.applicationState.application.authentication;
@@ -109,7 +154,30 @@ function ($scope, $state, $transition$, $window, $timeout, $sanitize, Authentica
     } else {
       authenticatedFlow();
     }
+
+    const code = URLHelper.getParameter('code');
+    const state = URLHelper.getParameter('state');
+    if (code && hasValidState(state)) {
+      oAuthLogin(code);
+    } else {
+      $scope.state.isInOAuthProcess = false;
+    }
   }
+
+  function oAuthLogin(code) {
+    return Authentication.OAuthLogin(code)
+    .then(function success() {
+      return retrieveAndSaveEnabledExtensions();
+    })
+    .then(function() {
+      URLHelper.cleanParameters();
+    })
+    .catch(function error() {
+      $scope.state.AuthenticationError = 'Unable to login via OAuth';
+      $scope.state.isInOAuthProcess = false;
+    });
+  }
+
 
   initView();
 }]);

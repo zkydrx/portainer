@@ -1,4 +1,6 @@
-function ServiceViewModel(data, runningTasks, allTasks, nodes) {
+import { ResourceControlViewModel } from '../../portainer/models/resourceControl';
+
+export function ServiceViewModel(data, runningTasks, allTasks) {
   this.Model = data;
   this.Id = data.ID;
   this.Tasks = [];
@@ -49,7 +51,7 @@ function ServiceViewModel(data, runningTasks, allTasks, nodes) {
     this.LogDriverName = '';
     this.LogDriverOpts = [];
   }
-    
+
   this.Constraints = data.Spec.TaskTemplate.Placement ? data.Spec.TaskTemplate.Placement.Constraints || [] : [];
   this.Preferences = data.Spec.TaskTemplate.Placement ? data.Spec.TaskTemplate.Placement.Preferences || [] : [];
   this.Platforms = data.Spec.TaskTemplate.Placement ? data.Spec.TaskTemplate.Placement.Platforms || [] : [];

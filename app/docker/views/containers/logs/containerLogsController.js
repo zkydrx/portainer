@@ -1,9 +1,12 @@
+import moment from 'moment';
+
 angular.module('portainer.docker')
 .controller('ContainerLogsController', ['$scope', '$transition$', '$interval', 'ContainerService', 'Notifications', 'HttpRequestHelper',
 function ($scope, $transition$, $interval, ContainerService, Notifications, HttpRequestHelper) {
   $scope.state = {
     refreshRate: 3,
-    lineCount: 2000,
+    lineCount: 100,
+    sinceTimestamp: '',
     displayTimestamps: false
   };
 
@@ -27,14 +30,10 @@ function ($scope, $transition$, $interval, ContainerService, Notifications, Http
     }
   }
 
-  function update(logs) {
-    $scope.logs = logs;
-  }
-
   function setUpdateRepeater(skipHeaders) {
     var refreshRate = $scope.state.refreshRate;
     $scope.repeater = $interval(function() {
-      ContainerService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, $scope.state.lineCount, skipHeaders)
+      ContainerService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, moment($scope.state.sinceTimestamp).unix(), $scope.state.lineCount, skipHeaders)
       .then(function success(data) {
         $scope.logs = data;
       })
@@ -46,7 +45,7 @@ function ($scope, $transition$, $interval, ContainerService, Notifications, Http
   }
 
   function startLogPolling(skipHeaders) {
-    ContainerService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, $scope.state.lineCount, skipHeaders)
+    ContainerService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, moment($scope.state.sinceTimestamp).unix(), $scope.state.lineCount, skipHeaders)
     .then(function success(data) {
       $scope.logs = data;
       setUpdateRepeater(skipHeaders);

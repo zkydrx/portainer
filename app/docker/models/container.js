@@ -1,7 +1,32 @@
-function ContainerViewModel(data) {
+import _ from 'lodash-es';
+import { ResourceControlViewModel } from '../../portainer/models/resourceControl';
+
+export function createStatus(statusText) {
+  var status = _.toLower(statusText);
+
+  if (status.indexOf('paused') > -1) {
+    return 'paused';
+  } else if (status.indexOf('dead') > -1) {
+    return 'dead';
+  } else if (status.indexOf('created') > -1) {
+    return 'created';
+  } else if (status.indexOf('exited') > -1) {
+    return 'stopped';
+  } else if (status.indexOf('(healthy)') > -1) {
+    return 'healthy';
+  } else if (status.indexOf('(unhealthy)') > -1) {
+    return 'unhealthy';
+  } else if (status.indexOf('(health: starting)') > -1) {
+    return 'starting';
+  }
+  return 'running';
+}
+
+export function ContainerViewModel(data) {
   this.Id = data.Id;
-  this.Status = data.Status;
+  this.Status = createStatus(data.Status);
   this.State = data.State;
+  this.Created = data.Created;
   this.Names = data.Names;
   // Unavailable in Docker < 1.10
   if (data.NetworkSettings && !_.isEmpty(data.NetworkSettings.Networks)) {
@@ -40,9 +65,22 @@ function ContainerViewModel(data) {
   }
 }
 
-function ContainerStatsViewModel(data) {
-  this.Date = data.read;
-  this.MemoryUsage = data.memory_stats.usage;
+export function ContainerStatsViewModel(data) {
+  this.read = data.read;
+  this.preread = data.preread;
+  if(data.memory_stats.privateworkingset !== undefined) { // Windows
+    this.MemoryUsage = data.memory_stats.privateworkingset;
+    this.MemoryCache = 0;
+    this.NumProcs = data.num_procs;
+    this.isWindows = true;
+  } else { // Linux
+    if (data.memory_stats.stats === undefined || data.memory_stats.usage === undefined) {
+      this.MemoryUsage = this.MemoryCache = 0;
+    } else {
+      this.MemoryUsage = data.memory_stats.usage - data.memory_stats.stats.cache;
+      this.MemoryCache = data.memory_stats.stats.cache;
+    }
+  }
   this.PreviousCPUTotalUsage = data.precpu_stats.cpu_usage.total_usage;
   this.PreviousCPUSystemUsage = data.precpu_stats.system_cpu_usage;
   this.CurrentCPUTotalUsage = data.cpu_stats.cpu_usage.total_usage;
@@ -53,7 +91,7 @@ function ContainerStatsViewModel(data) {
   this.Networks = _.values(data.networks);
 }
 
-function ContainerDetailsViewModel(data) {
+export function ContainerDetailsViewModel(data) {
   this.Model = data;
   this.Id = data.Id;
   this.State = data.State;

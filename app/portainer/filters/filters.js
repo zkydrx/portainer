@@ -1,3 +1,7 @@
+import moment from 'moment';
+import _ from 'lodash-es';
+import filesize from 'filesize';
+
 angular.module('portainer.app')
 .filter('truncate', function () {
   'use strict';
@@ -34,7 +38,7 @@ angular.module('portainer.app')
 .filter('capitalize', function () {
   'use strict';
   return function (text) {
-    return _.capitalize(text);
+    return text ? _.capitalize(text) : '';
   };
 })
 .filter('stripprotocol', function() {
@@ -102,6 +106,41 @@ angular.module('portainer.app')
     return '';
   };
 })
+.filter('labelsToStr', function () {
+  'use strict';
+  return function (arr, separator) {
+    if (arr) {
+      return _.join(arr.map((item) => item.key + ':' + item.value), separator);
+    }
+    return '';
+  };
+})
+.filter('endpointtypename', function () {
+  'use strict';
+  return function (type) {
+    if (type === 1) {
+      return 'Docker';
+    } else if (type === 2) {
+      return 'Agent';
+    } else if (type === 3) {
+      return 'Azure ACI';
+    } else if (type === 4) {
+      return 'Edge Agent';
+    }
+    return '';
+  };
+})
+.filter('endpointtypeicon', function () {
+  'use strict';
+  return function (type) {
+    if (type === 3) {
+      return 'fab fa-microsoft';
+    } else if (type === 4) {
+      return 'fa fa-cloud';
+    }
+    return 'fab fa-docker';
+  };
+})
 .filter('ownershipicon', function () {
   'use strict';
   return function (ownership) {
@@ -115,5 +154,14 @@ angular.module('portainer.app')
       default:
         return 'fa fa-eye';
     }
+  };
+})
+.filter('endpointstatusbadge', function () {
+  'use strict';
+  return function (status) {
+    if (status === 2) {
+      return 'danger';
+    }
+    return 'success';
   };
 });

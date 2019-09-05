@@ -1,6 +1,8 @@
+import { ContainerDetailsViewModel, ContainerViewModel, ContainerStatsViewModel } from '../models/container';
+
 angular.module('portainer.docker')
-.factory('ContainerService', ['$q', 'Container', 'ResourceControlService', 'LogHelper',
-function ContainerServiceFactory($q, Container, ResourceControlService, LogHelper) {
+.factory('ContainerService', ['$q', 'Container', 'ResourceControlService', 'LogHelper', '$timeout',
+function ContainerServiceFactory($q, Container, ResourceControlService, LogHelper, $timeout) {
   'use strict';
   var service = {};
 
@@ -35,6 +37,26 @@ function ContainerServiceFactory($q, Container, ResourceControlService, LogHelpe
     return deferred.promise;
   };
 
+  service.resizeTTY = function (id, width, height, timeout) {
+    var deferred = $q.defer();
+
+    $timeout(function() {
+      Container.resize({}, {id: id, height: height, width: width}).$promise
+          .then(function success(data) {
+            if (data.message) {
+              deferred.reject({msg: 'Unable to resize tty of container ' + id, err: data.message});
+            } else {
+              deferred.resolve(data);
+            }
+          })
+          .catch(function error(err) {
+            deferred.reject({msg: 'Unable to resize tty of container ' + id, err: err});
+          });
+    }, timeout);
+
+    return deferred.promise;
+  };
+
   service.startContainer = function(id) {
     return Container.start({ id: id }, {}).$promise;
   };
@@ -63,15 +85,19 @@ function ContainerServiceFactory($q, Container, ResourceControlService, LogHelpe
     return Container.rename({id: id, name: newContainerName }, {}).$promise;
   };
 
+  service.updateRestartPolicy = updateRestartPolicy;
+
+  function updateRestartPolicy(id, restartPolicy, maximumRetryCounts) {
+    return Container.update({ id: id },
+      { RestartPolicy: { Name: restartPolicy, MaximumRetryCount: maximumRetryCounts } }
+    ).$promise;
+  }
+
   service.createContainer = function(configuration) {
     var deferred = $q.defer();
     Container.create(configuration).$promise
     .then(function success(data) {
-      if (data.message) {
-        deferred.reject({ msg: data.message });
-      } else {
-        deferred.resolve(data);
-      }
+      deferred.resolve(data);
     })
     .catch(function error(err) {
       deferred.reject({ msg: 'Unable to create container', err: err });
@@ -136,7 +162,7 @@ function ContainerServiceFactory($q, Container, ResourceControlService, LogHelpe
     return deferred.promise;
   };
 
-  service.logs = function(id, stdout, stderr, timestamps, tail, stripHeaders) {
+  service.logs = function(id, stdout, stderr, timestamps, since, tail, stripHeaders) {
     var deferred = $q.defer();
 
     var parameters = {
@@ -144,6 +170,7 @@ function ContainerServiceFactory($q, Container, ResourceControlService, LogHelpe
       stdout: stdout || 0,
       stderr: stderr || 0,
       timestamps: timestamps || 0,
+      since: since || 0,
       tail: tail || 'all'
     };
 
@@ -180,6 +207,10 @@ function ContainerServiceFactory($q, Container, ResourceControlService, LogHelpe
 
   service.inspect = function(id) {
     return Container.inspect({ id: id }).$promise;
+  };
+
+  service.prune = function(filters) {
+    return Container.prune({ filters: filters }).$promise;
   };
 
   return service;

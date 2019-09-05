@@ -1,12 +1,20 @@
+import moment from 'moment';
+
 angular.module('portainer.docker')
 .controller('LogViewerController', ['clipboard',
 function (clipboard) {
-  var ctrl = this;
 
   this.state = {
+    availableSinceDatetime: [
+      { desc: 'Last day', value: moment().subtract(1, 'days').format() },
+      { desc: 'Last 4 hours', value: moment().subtract(4, 'hours').format() },
+      { desc: 'Last hour', value: moment().subtract(1, 'hours').format() },
+      { desc: 'Last 10 minutes', value: moment().subtract(10, 'minutes').format() }
+    ],
     copySupported: clipboard.supported,
     logCollection: true,
     autoScroll: true,
+    wrapLines: true,
     search: '',
     filteredLogs: [],
     selectedLines: []

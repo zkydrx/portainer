@@ -1,9 +1,12 @@
-function NetworkViewModel(data) {
+import { ResourceControlViewModel } from "../../portainer/models/resourceControl";
+
+export function NetworkViewModel(data) {
   this.Id = data.Id;
   this.Name = data.Name;
   this.Scope = data.Scope;
   this.Driver = data.Driver;
   this.Attachable = data.Attachable;
+  this.Internal = data.Internal;
   this.IPAM = data.IPAM;
   this.Containers = data.Containers;
   this.Options = data.Options;
@@ -23,4 +26,7 @@ function NetworkViewModel(data) {
       this.NodeName = data.Portainer.Agent.NodeName;
     }
   }
+
+  this.ConfigFrom = data.ConfigFrom;
+  this.ConfigOnly = data.ConfigOnly;
 }

@@ -1,3 +1,7 @@
+import toastr from 'toastr';
+import { Terminal } from 'xterm';
+import * as fit from 'xterm/lib/addons/fit/fit';
+
 angular.module('portainer')
   .config(['$urlRouterProvider', '$httpProvider', 'localStorageServiceProvider', 'jwtOptionsProvider', 'AnalyticsProvider', '$uibTooltipProvider', '$compileProvider', 'cfpLoadingBarProvider',
   function ($urlRouterProvider, $httpProvider, localStorageServiceProvider, jwtOptionsProvider, AnalyticsProvider, $uibTooltipProvider, $compileProvider, cfpLoadingBarProvider) {
@@ -14,12 +18,10 @@ angular.module('portainer')
     jwtOptionsProvider.config({
       tokenGetter: ['LocalStorage', function(LocalStorage) {
         return LocalStorage.getJWT();
-      }],
-      unauthenticatedRedirector: ['$state', function($state) {
-        $state.go('portainer.auth', {error: 'Your session has expired'});
       }]
     });
     $httpProvider.interceptors.push('jwtInterceptor');
+    $httpProvider.interceptors.push('EndpointStatusInterceptor');
     $httpProvider.defaults.headers.post['Content-Type'] = 'application/json';
     $httpProvider.defaults.headers.put['Content-Type'] = 'application/json';
     $httpProvider.defaults.headers.patch['Content-Type'] = 'application/json';
@@ -29,13 +31,16 @@ angular.module('portainer')
         request: function(config) {
           if (config.url.indexOf('/docker/') > -1) {
             config.headers['X-PortainerAgent-Target'] = HttpRequestHelper.portainerAgentTargetHeader();
+            if (HttpRequestHelper.portainerAgentManagerOperation()) {
+              config.headers['X-PortainerAgent-ManagerOperation'] = '1';
+            }
           }
           return config;
         }
       };
     }]);
 
-    AnalyticsProvider.setAccount('@@CONFIG_GA_ID');
+    AnalyticsProvider.setAccount({ tracker: __CONFIG_GA_ID, set: { anonymizeIp: true } });
     AnalyticsProvider.startOffline(true);
 
     toastr.options.timeOut = 3000;
@@ -51,6 +56,7 @@ angular.module('portainer')
 
     cfpLoadingBarProvider.includeSpinner = false;
     cfpLoadingBarProvider.parentSelector = '#loadingbar-placeholder';
+    cfpLoadingBarProvider.latencyThreshold = 600;
 
     $urlRouterProvider.otherwise('/auth');
   }]);

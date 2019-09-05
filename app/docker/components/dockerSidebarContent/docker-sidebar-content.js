@@ -1,12 +1,10 @@
 angular.module('portainer.docker').component('dockerSidebarContent', {
-  templateUrl: 'app/docker/components/dockerSidebarContent/dockerSidebarContent.html',
+  templateUrl: './dockerSidebarContent.html',
   bindings: {
-    'endpointApiVersion': '<',
-    'swarmManagement': '<',
-    'standaloneManagement': '<',
-    'adminAccess': '<',
-    'externalContributions': '<',
-    'sidebarToggledOn': '<',
-    'currentState': '<'
+    endpointApiVersion: '<',
+    swarmManagement: '<',
+    standaloneManagement: '<',
+    adminAccess: '<',
+    offlineMode: '<'
   }
 });

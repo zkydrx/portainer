@@ -1,3 +1,5 @@
+import _ from 'lodash-es';
+
 function includeString(text, values) {
   return values.some(function(val){
     return text.indexOf(val) !== -1;
@@ -62,6 +64,16 @@ angular.module('portainer.docker')
     return labelStyle;
   };
 })
+.filter('taskhaslogs', function () {
+  'use strict';
+  return function (state) {
+    var validState = ['running', 'complete', 'failed', 'shutdown'];
+    if (validState.indexOf(state) > -1) {
+      return true;
+    }
+    return false;
+  };
+})
 .filter('containerstatusbadge', function () {
   'use strict';
   return function (text) {
@@ -76,32 +88,22 @@ angular.module('portainer.docker')
     return 'success';
   };
 })
-.filter('containerstatus', function () {
-  'use strict';
-  return function (text) {
-    var status = _.toLower(text);
-    if (includeString(status, ['paused'])) {
-      return 'paused';
-    } else if (includeString(status, ['dead'])) {
-      return 'dead';
-    } else if (includeString(status, ['created'])) {
-      return 'created';
-    } else if (includeString(status, ['exited'])) {
-      return 'stopped';
-    } else if (includeString(status, ['(healthy)'])) {
-      return 'healthy';
-    } else if (includeString(status, ['(unhealthy)'])) {
-      return 'unhealthy';
-    } else if (includeString(status, ['(health: starting)'])) {
-      return 'starting';
-    }
-    return 'running';
-  };
-})
 .filter('nodestatusbadge', function () {
   'use strict';
   return function (text) {
     if (text === 'down' || text === 'Unhealthy') {
+      return 'danger';
+    }
+    return 'success';
+  };
+})
+.filter('dockerNodeAvailabilityBadge', function () {
+  'use strict';
+  return function (text) {
+    if (text === 'pause') {
+      return 'warning';
+    }
+    else if (text === 'drain') {
       return 'danger';
     }
     return 'success';
@@ -204,30 +206,57 @@ angular.module('portainer.docker')
     return '';
   };
 })
-.filter('availablenodecount', function () {
+.filter('availablenodecount', ['ConstraintsHelper', function (ConstraintsHelper) {
   'use strict';
-  return function (nodes) {
+  return function (nodes, service) {
     var availableNodes = 0;
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
-      if (node.Availability === 'active' && node.Status === 'ready') {
+      if (node.Availability === 'active' && node.Status === 'ready' && ConstraintsHelper.matchesServiceConstraints(service, node)) {
         availableNodes++;
       }
     }
     return availableNodes;
   };
-})
+}])
 .filter('runningtaskscount', function () {
   'use strict';
   return function (tasks) {
     var runningTasks = 0;
     for (var i = 0; i < tasks.length; i++) {
       var task = tasks[i];
-      if (task.Status.State === 'running') {
+      if (task.Status.State === 'running' && task.DesiredState === 'running') {
         runningTasks++;
       }
     }
     return runningTasks;
+  };
+})
+.filter('runningcontainers', function () {
+  'use strict';
+  return function runningContainersFilter(containers) {
+    return containers.filter(function (container) {
+      return container.State === 'running';
+    }).length;
+  };
+})
+.filter('stoppedcontainers', function () {
+  'use strict';
+  return function stoppedContainersFilter(containers) {
+    return containers.filter(function (container) {
+      return container.State === 'exited';
+    }).length;
+  };
+})
+.filter('imagestotalsize', function () {
+  'use strict';
+  return function (images) {
+    var totalImageSize = 0;
+    for (var i = 0; i < images.length; i++) {
+      var item = images[i];
+      totalImageSize += item.VirtualSize;
+    }
+    return totalImageSize;
   };
 })
 .filter('tasknodename', function () {
@@ -243,7 +272,7 @@ angular.module('portainer.docker')
 .filter('imagelayercommand', function () {
   'use strict';
   return function (createdBy) {
-	  return createdBy.replace('/bin/sh -c #(nop) ', '').replace('/bin/sh -c ', 'RUN ');
+    return createdBy.replace('/bin/sh -c #(nop) ', '').replace('/bin/sh -c ', 'RUN ');
   };
 })
 .filter('trimshasum', function () {

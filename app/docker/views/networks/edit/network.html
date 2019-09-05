@@ -1,5 +1,5 @@
 <rd-header>
-  <rd-header-title title="Network details"></rd-header-title>
+  <rd-header-title title-text="Network details"></rd-header-title>
   <rd-header-content>
     <a ui-sref="docker.networks">Networks</a> &gt; <a ui-sref="docker.networks.network({id: network.Id})">{{ network.Name }}</a>
   </rd-header-content>
@@ -8,7 +8,7 @@
 <div class="row">
   <div class="col-lg-12 col-md-12 col-xs-12">
     <rd-widget>
-      <rd-widget-header icon="fa-sitemap" title="Network details"></rd-widget-header>
+      <rd-widget-header icon="fa-sitemap" title-text="Network details"></rd-widget-header>
       <rd-widget-body classes="no-padding">
         <table class="table">
           <tbody>
@@ -20,7 +20,7 @@
               <td>ID</td>
               <td>
                 {{ network.Id }}
-                <button class="btn btn-xs btn-danger" ng-click="removeNetwork(network.Id)"><i class="fa fa-trash-alt space-right" aria-hidden="true"></i>Delete this network</button>
+                <button authorization="DockerNetworkDelete" ng-if="allowRemove(network)" class="btn btn-xs btn-danger" ng-click="removeNetwork(network.Id)"><i class="fa fa-trash-alt space-right" aria-hidden="true"></i>Delete this network</button>
               </td>
             </tr>
             <tr>
@@ -31,13 +31,17 @@
               <td>Scope</td>
               <td>{{ network.Scope }}</td>
             </tr>
-            <tr ng-if="network.IPAM.Config[0].Subnet">
-              <td>Subnet</td>
-              <td>{{ network.IPAM.Config[0].Subnet }}</td>
+            <tr>
+              <td>Attachable</td>
+              <td>{{ network.Attachable }}</td>
             </tr>
-            <tr ng-if="network.IPAM.Config[0].Gateway">
-              <td>Gateway</td>
-              <td>{{ network.IPAM.Config[0].Gateway }}</td>
+            <tr>
+              <td>Internal</td>
+              <td>{{ network.Internal }}</td>
+            </tr>
+            <tr ng-if="network.IPAM.Config.length > 0" ng-repeat="config in network.IPAM.Config">
+              <td>Subnet - {{ config.Subnet }}</td>
+              <td>Gateway - {{ config.Gateway }}</td>
             </tr>
           </tbody>
         </table>
@@ -58,7 +62,7 @@
 <div class="row" ng-if="!(network.Options | emptyobject)">
   <div class="col-lg-12 col-md-12 col-xs-12">
     <rd-widget>
-      <rd-widget-header icon="fa-cogs" title="Network options"></rd-widget-header>
+      <rd-widget-header icon="fa-cogs" title-text="Network options"></rd-widget-header>
       <rd-widget-body classes="no-padding">
         <table class="table">
           <tbody>
@@ -77,7 +81,7 @@
 <div class="row" ng-if="containersInNetwork.length > 0">
   <div class="col-lg-12 col-md-12 col-xs-12">
     <rd-widget>
-      <rd-widget-header icon="fa-server" title="Containers in network"></rd-widget-header>
+      <rd-widget-header icon="fa-server" title-text="Containers in network"></rd-widget-header>
       <rd-widget-body classes="no-padding">
         <table class="table">
           <thead>
@@ -85,7 +89,7 @@
             <th>IPv4 Address</th>
             <th>IPv6 Address</th>
             <th>MacAddress</th>
-            <th>Actions</th>
+            <th authorization="DockerNetworkDisconnect">Actions</th>
           </thead>
           <tbody>
             <tr ng-repeat="container in containersInNetwork">
@@ -93,7 +97,7 @@
               <td>{{ container.IPv4Address || '-' }}</td>
               <td>{{ container.IPv6Address || '-' }}</td>
               <td>{{ container.MacAddress || '-' }}</td>
-              <td>
+              <td authorization="DockerNetworkDisconnect">
                 <button type="button" class="btn btn-xs btn-danger" ng-click="containerLeaveNetwork(network, container)"><i class="fa fa-trash-alt space-right" aria-hidden="true"></i>Leave Network</button>
               </td>
             </tr>

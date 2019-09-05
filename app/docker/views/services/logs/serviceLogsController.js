@@ -1,9 +1,12 @@
+import moment from 'moment';
+
 angular.module('portainer.docker')
 .controller('ServiceLogsController', ['$scope', '$transition$', '$interval', 'ServiceService', 'Notifications',
 function ($scope, $transition$, $interval, ServiceService, Notifications) {
   $scope.state = {
     refreshRate: 3,
-    lineCount: 2000,
+    lineCount: 100,
+    sinceTimestamp: '',
     displayTimestamps: false
   };
 
@@ -30,7 +33,7 @@ function ($scope, $transition$, $interval, ServiceService, Notifications) {
   function setUpdateRepeater() {
     var refreshRate = $scope.state.refreshRate;
     $scope.repeater = $interval(function() {
-      ServiceService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, $scope.state.lineCount)
+      ServiceService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, moment($scope.state.sinceTimestamp).unix(), $scope.state.lineCount)
       .then(function success(data) {
         $scope.logs = data;
       })
@@ -42,7 +45,7 @@ function ($scope, $transition$, $interval, ServiceService, Notifications) {
   }
 
   function startLogPolling() {
-    ServiceService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, $scope.state.lineCount)
+    ServiceService.logs($transition$.params().id, 1, 1, $scope.state.displayTimestamps ? 1 : 0, moment($scope.state.sinceTimestamp).unix(), $scope.state.lineCount)
     .then(function success(data) {
       $scope.logs = data;
       setUpdateRepeater();

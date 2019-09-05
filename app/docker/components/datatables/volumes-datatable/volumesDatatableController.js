@@ -1,20 +1,13 @@
 angular.module('portainer.docker')
-.controller('VolumesDatatableController', ['PaginationService', 'DatatableService',
-function (PaginationService, DatatableService) {
+.controller('VolumesDatatableController', ['$scope', '$controller', 'DatatableService',
+function ($scope, $controller, DatatableService) {
+
+  angular.extend(this, $controller('GenericDatatableController', {$scope: $scope}));
 
   var ctrl = this;
 
-  this.state = {
-    selectAll: false,
-    orderBy: this.orderBy,
-    paginatedItemLimit: PaginationService.getPaginationLimit(this.tableKey),
-    displayTextFilter: false,
-    selectedItemCount: 0,
-    selectedItems: []
-  };
-  
   this.filters = {
-    usage: {
+    state: {
       open: false,
       enabled: false,
       showUsedVolumes: true,
@@ -22,81 +15,56 @@ function (PaginationService, DatatableService) {
     }
   };
 
-  this.changeOrderBy = function(orderField) {
-    this.state.reverseOrder = this.state.orderBy === orderField ? !this.state.reverseOrder : false;
-    this.state.orderBy = orderField;
-    DatatableService.setDataTableOrder(this.tableKey, orderField, this.state.reverseOrder);
-  };
-
-  this.selectItem = function(item) {
-    if (item.Checked) {
-      this.state.selectedItemCount++;
-      this.state.selectedItems.push(item);
-    } else {
-      this.state.selectedItems.splice(this.state.selectedItems.indexOf(item), 1);
-      this.state.selectedItemCount--;
-    }
-  };
-
-  this.selectAll = function() {
-    for (var i = 0; i < this.state.filteredDataSet.length; i++) {
-      var item = this.state.filteredDataSet[i];
-      if (item.Checked !== this.state.selectAll) {
-        item.Checked = this.state.selectAll;
-        this.selectItem(item);
-      }
-    }
-  };
-
-  this.changePaginationLimit = function() {
-    PaginationService.setPaginationLimit(this.tableKey, this.state.paginatedItemLimit);
-  };
-
-  this.updateDisplayTextFilter = function() {
-    this.state.displayTextFilter = !this.state.displayTextFilter;
-    if (!this.state.displayTextFilter) {
-      delete this.state.textFilter;
-    }
-  };
-  
-  this.applyFilters = function(value, index, array) {
+  this.applyFilters = function(value) {
     var volume = value;
     var filters = ctrl.filters;
-    if ((volume.dangling && filters.usage.showUnusedVolumes) 
-      || (!volume.dangling && filters.usage.showUsedVolumes)) {
+    if ((volume.dangling && filters.state.showUnusedVolumes)
+      || (!volume.dangling && filters.state.showUsedVolumes)) {
       return true;
     }
     return false;
   };
-  
-  this.onUsageFilterChange = function() {
-    var filters = this.filters.usage;
+
+  this.onstateFilterChange = function() {
+    var filters = this.filters.state;
     var filtered = false;
     if (!filters.showUsedVolumes || !filters.showUnusedVolumes) {
       filtered = true;
     }
-    this.filters.usage.enabled = filtered;
+    this.filters.state.enabled = filtered;
     DatatableService.setDataTableFilters(this.tableKey, this.filters);
   };
 
   this.$onInit = function() {
-    setDefaults(this);
+    this.setDefaults();
+    this.prepareTableFromDataset();
 
+    this.state.orderBy = this.orderBy;
     var storedOrder = DatatableService.getDataTableOrder(this.tableKey);
     if (storedOrder !== null) {
       this.state.reverseOrder = storedOrder.reverse;
       this.state.orderBy = storedOrder.orderBy;
     }
-    
+
+    var textFilter = DatatableService.getDataTableTextFilters(this.tableKey);
+    if (textFilter !== null) {
+      this.state.textFilter = textFilter;
+      this.onTextFilterChange();
+    }
+
     var storedFilters = DatatableService.getDataTableFilters(this.tableKey);
     if (storedFilters !== null) {
       this.filters = storedFilters;
     }
-    this.filters.usage.open = false;
-  };
+    if (this.filters && this.filters.state) {
+      this.filters.state.open = false;
+    }
 
-  function setDefaults(ctrl) {
-    ctrl.showTextFilter = ctrl.showTextFilter ? ctrl.showTextFilter : false;
-    ctrl.state.reverseOrder = ctrl.reverseOrder ? ctrl.reverseOrder : false;
-  }
+    var storedSettings = DatatableService.getDataTableSettings(this.tableKey);
+    if (storedSettings !== null) {
+      this.settings = storedSettings;
+      this.settings.open = false;
+    }
+    this.onSettingsRepeaterChange();
+  };
 }]);

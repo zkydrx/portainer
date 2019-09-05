@@ -3,7 +3,7 @@ package proxy
 import (
 	"net/http"
 
-	"github.com/portainer/portainer"
+	"github.com/portainer/portainer/api"
 )
 
 const (
@@ -29,7 +29,7 @@ func volumeListOperation(response *http.Response, executor *operationExecutor) e
 	if responseObject["Volumes"] != nil {
 		volumeData := responseObject["Volumes"].([]interface{})
 
-		if executor.operationContext.isAdmin {
+		if executor.operationContext.isAdmin || executor.operationContext.endpointResourceAccess {
 			volumeData, err = decorateVolumeList(volumeData, executor.operationContext.resourceControls)
 		} else {
 			volumeData, err = filterVolumeList(volumeData, executor.operationContext)
@@ -62,17 +62,17 @@ func volumeInspectOperation(response *http.Response, executor *operationExecutor
 
 	volumeID := responseObject[volumeIdentifier].(string)
 	responseObject, access := applyResourceAccessControl(responseObject, volumeID, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
 	volumeLabels := extractVolumeLabelsFromVolumeInspectObject(responseObject)
 	responseObject, access = applyResourceAccessControlFromLabel(volumeLabels, responseObject, volumeLabelForStackIdentifier, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
-	return rewriteResponse(response, responseObject, http.StatusOK)
+	return rewriteAccessDeniedResponse(response)
 }
 
 // extractVolumeLabelsFromVolumeInspectObject retrieve the Labels of the volume if present.
@@ -119,7 +119,7 @@ func decorateVolumeList(volumeData []interface{}, resourceControls []portainer.R
 // Authorized volumes are decorated during the process.
 // Resource controls checks are based on: resource identifier, stack identifier (from label).
 // Volume object schema reference: https://docs.docker.com/engine/api/v1.28/#operation/VolumeList
-func filterVolumeList(volumeData []interface{}, context *restrictedOperationContext) ([]interface{}, error) {
+func filterVolumeList(volumeData []interface{}, context *restrictedDockerOperationContext) ([]interface{}, error) {
 	filteredVolumeData := make([]interface{}, 0)
 
 	for _, volume := range volumeData {
@@ -130,12 +130,13 @@ func filterVolumeList(volumeData []interface{}, context *restrictedOperationCont
 
 		volumeID := volumeObject[volumeIdentifier].(string)
 		volumeObject, access := applyResourceAccessControl(volumeObject, volumeID, context)
-		if access {
+		if !access {
 			volumeLabels := extractVolumeLabelsFromVolumeListObject(volumeObject)
 			volumeObject, access = applyResourceAccessControlFromLabel(volumeLabels, volumeObject, volumeLabelForStackIdentifier, context)
-			if access {
-				filteredVolumeData = append(filteredVolumeData, volumeObject)
-			}
+		}
+
+		if access {
+			filteredVolumeData = append(filteredVolumeData, volumeObject)
 		}
 	}
 

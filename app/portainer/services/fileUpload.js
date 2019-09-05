@@ -1,3 +1,5 @@
+import { jsonObjectsToArrayHandler, genericHandler } from '../../docker/rest/response/handlers';
+
 angular.module('portainer.app')
 .factory('FileUploadService', ['$q', 'Upload', 'EndpointProvider', function FileUploadFactory($q, Upload, EndpointProvider) {
   'use strict';
@@ -10,7 +12,6 @@ angular.module('portainer.app')
 
   service.buildImage = function(names, file, path) {
     var endpointID = EndpointProvider.endpointID();
-    Upload.setDefaults({ ngfMinSize: 10 });
     return Upload.http({
       url: 'api/endpoints/' + endpointID + '/docker/build',
       headers : {
@@ -22,16 +23,43 @@ angular.module('portainer.app')
         dockerfile: path
       },
       ignoreLoadingBar: true,
-      transformResponse: function(data, headers) {
+      transformResponse: function(data) {
         return jsonObjectsToArrayHandler(data);
       }
     });
   };
 
-  service.createStack = function(stackName, swarmId, file, env) {
+  service.loadImages = function(file) {
     var endpointID = EndpointProvider.endpointID();
+    return Upload.http({
+      url: 'api/endpoints/' + endpointID + '/docker/images/load',
+      headers : {
+        'Content-Type': file.type
+      },
+      data: file,
+      ignoreLoadingBar: true,
+      transformResponse: genericHandler
+    });
+  };
+
+  service.createSchedule = function(payload) {
     return Upload.upload({
-      url: 'api/endpoints/' + endpointID + '/stacks?method=file',
+      url: 'api/schedules?method=file',
+      data: {
+        file: payload.File,
+        Name: payload.Name,
+        CronExpression: payload.CronExpression,
+        Image: payload.Image,
+        Endpoints: Upload.json(payload.Endpoints),
+        RetryCount: payload.RetryCount,
+        RetryInterval: payload.RetryInterval
+      }
+    });
+  };
+
+  service.createSwarmStack = function(stackName, swarmId, file, env, endpointId) {
+    return Upload.upload({
+      url: 'api/stacks?method=file&type=1&endpointId=' + endpointId,
       data: {
         file: file,
         Name: stackName,
@@ -42,20 +70,68 @@ angular.module('portainer.app')
     });
   };
 
-  service.createEndpoint = function(name, URL, PublicURL, groupID, TLS, TLSSkipVerify, TLSSkipClientVerify, TLSCAFile, TLSCertFile, TLSKeyFile) {
+  service.createComposeStack = function(stackName, file, env, endpointId) {
+    return Upload.upload({
+      url: 'api/stacks?method=file&type=2&endpointId=' + endpointId,
+      data: {
+        file: file,
+        Name: stackName,
+        Env: Upload.json(env)
+      },
+      ignoreLoadingBar: true
+    });
+  };
+
+  service.configureRegistry = function(registryId, registryManagementConfigurationModel) {
+    return Upload.upload({
+      url: 'api/registries/' + registryId + '/configure',
+      data: registryManagementConfigurationModel
+    });
+  };
+
+  service.executeEndpointJob = function (imageName, file, endpointId, nodeName) {
+    return Upload.upload({
+      url: 'api/endpoints/' + endpointId + '/job?method=file&nodeName=' + nodeName,
+      data: {
+        File: file,
+        Image: imageName
+      },
+      ignoreLoadingBar: true
+    });
+  };
+
+  service.createEndpoint = function(name, type, URL, PublicURL, groupID, tags, TLS, TLSSkipVerify, TLSSkipClientVerify, TLSCAFile, TLSCertFile, TLSKeyFile) {
     return Upload.upload({
       url: 'api/endpoints',
       data: {
         Name: name,
+        EndpointType: type,
         URL: URL,
         PublicURL: PublicURL,
         GroupID: groupID,
+        Tags: Upload.json(tags),
         TLS: TLS,
         TLSSkipVerify: TLSSkipVerify,
         TLSSkipClientVerify: TLSSkipClientVerify,
         TLSCACertFile: TLSCAFile,
         TLSCertFile: TLSCertFile,
         TLSKeyFile: TLSKeyFile
+      },
+      ignoreLoadingBar: true
+    });
+  };
+
+  service.createAzureEndpoint = function(name, applicationId, tenantId, authenticationKey, groupId, tags) {
+    return Upload.upload({
+      url: 'api/endpoints',
+      data: {
+        Name: name,
+        EndpointType: 3,
+        GroupID: groupId,
+        Tags: Upload.json(tags),
+        AzureApplicationID: applicationId,
+        AzureTenantID: tenantId,
+        AzureAuthenticationKey: authenticationKey
       },
       ignoreLoadingBar: true
     });

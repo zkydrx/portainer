@@ -2,46 +2,105 @@ package client
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"github.com/portainer/portainer"
-	"github.com/portainer/portainer/crypto"
+	"github.com/portainer/portainer/api"
 )
 
-// ExecutePingOperationFromEndpoint will send a SystemPing operation HTTP request to a Docker environment
-// using the specified endpoint configuration. It is used exclusively when
-// specifying an endpoint from the CLI via the -H flag.
-func ExecutePingOperationFromEndpoint(endpoint *portainer.Endpoint) (bool, error) {
-	if strings.HasPrefix(endpoint.URL, "unix://") {
-		return false, nil
+const (
+	errInvalidResponseStatus = portainer.Error("Invalid response status (expecting 200)")
+	defaultHTTPTimeout       = 5
+)
+
+// HTTPClient represents a client to send HTTP requests.
+type HTTPClient struct {
+	*http.Client
+}
+
+// NewHTTPClient is used to build a new HTTPClient.
+func NewHTTPClient() *HTTPClient {
+	return &HTTPClient{
+		&http.Client{
+			Timeout: time.Second * time.Duration(defaultHTTPTimeout),
+		},
+	}
+}
+
+// AzureAuthenticationResponse represents an Azure API authentication response.
+type AzureAuthenticationResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresOn   string `json:"expires_on"`
+}
+
+// ExecuteAzureAuthenticationRequest is used to execute an authentication request
+// against the Azure API. It re-uses the same http.Client.
+func (client *HTTPClient) ExecuteAzureAuthenticationRequest(credentials *portainer.AzureCredentials) (*AzureAuthenticationResponse, error) {
+	loginURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token", credentials.TenantID)
+	params := url.Values{
+		"grant_type":    {"client_credentials"},
+		"client_id":     {credentials.ApplicationID},
+		"client_secret": {credentials.AuthenticationKey},
+		"resource":      {"https://management.azure.com/"},
 	}
 
-	transport := &http.Transport{}
+	response, err := client.PostForm(loginURL, params)
+	if err != nil {
+		return nil, err
+	}
 
-	scheme := "http"
+	if response.StatusCode != http.StatusOK {
+		return nil, portainer.ErrAzureInvalidCredentials
+	}
 
-	if endpoint.TLSConfig.TLS || endpoint.TLSConfig.TLSSkipVerify {
-		tlsConfig, err := crypto.CreateTLSConfiguration(&endpoint.TLSConfig)
-		if err != nil {
-			return false, err
-		}
-		scheme = "https"
-		transport.TLSClientConfig = tlsConfig
+	var token AzureAuthenticationResponse
+	err = json.NewDecoder(response.Body).Decode(&token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+// Get executes a simple HTTP GET to the specified URL and returns
+// the content of the response body. Timeout can be specified via the timeout parameter,
+// will default to defaultHTTPTimeout if set to 0.
+func Get(url string, timeout int) ([]byte, error) {
+
+	if timeout == 0 {
+		timeout = defaultHTTPTimeout
 	}
 
 	client := &http.Client{
-		Timeout:   time.Second * 3,
-		Transport: transport,
+		Timeout: time.Second * time.Duration(timeout),
 	}
 
-	target := strings.Replace(endpoint.URL, "tcp://", scheme+"://", 1)
-	return pingOperation(client, target)
+	response, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errInvalidResponseStatus
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
 
 // ExecutePingOperation will send a SystemPing operation HTTP request to a Docker environment
 // using the specified host and optional TLS configuration.
+// It uses a new Http.Client for each operation.
 func ExecutePingOperation(host string, tlsConfig *tls.Config) (bool, error) {
 	transport := &http.Transport{}
 

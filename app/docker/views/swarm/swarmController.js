@@ -28,7 +28,7 @@ function ($q, $scope, SystemService, NodeService, Notifications, StateManager, A
     // If connected to a replica, information for node1 is available at element #5
     // The next 10 elements are information related to the node
     var node_offset = info[0][1] === 'primary' ? 4 : 5;
-    for (i = 0; i < node_count; i++) {
+    for (let i = 0; i < node_count; i++) {
       extractNodeInfo(info, node_offset);
       node_offset += 9;
     }
@@ -58,26 +58,36 @@ function ($q, $scope, SystemService, NodeService, Notifications, StateManager, A
     $scope.totalMemory = memory;
   }
 
+  $scope.getNodes = getNodes;
+  function getNodes() {
+    var provider = $scope.applicationState.endpoint.mode.provider;
+    if (provider === 'DOCKER_SWARM_MODE') {
+      NodeService.nodes().then(function(data) {
+          var nodes = data;
+          processTotalCPUAndMemory(nodes);
+          $scope.nodes = nodes;
+      })
+      .catch(function error(err) {
+        Notifications.error('Failure', err, 'Unable to retrieve cluster details');
+      });
+    }
+  }
+
   function initView() {
     if (StateManager.getState().application.authentication) {
-      var userDetails = Authentication.getUserDetails();
-      var isAdmin = userDetails.role === 1 ? true: false;
-      $scope.isAdmin = isAdmin;
+      $scope.isAdmin = Authentication.isAdmin();
     }
 
     var provider = $scope.applicationState.endpoint.mode.provider;
     $q.all({
       version: SystemService.version(),
-      info: SystemService.info(),
-      nodes: provider !== 'DOCKER_SWARM_MODE' || NodeService.nodes()
+      info: SystemService.info()
     })
     .then(function success(data) {
       $scope.docker = data.version;
       $scope.info = data.info;
       if (provider === 'DOCKER_SWARM_MODE') {
-        var nodes = data.nodes;
-        processTotalCPUAndMemory(nodes);
-        $scope.nodes = nodes;
+        getNodes();
       } else {
         extractSwarmInfo(data.info);
       }

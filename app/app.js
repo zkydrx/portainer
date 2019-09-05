@@ -1,6 +1,8 @@
+import _ from 'lodash-es';
+
 angular.module('portainer')
-.run(['$rootScope', '$state', 'Authentication', 'authManager', 'StateManager', 'EndpointProvider', 'Notifications', 'Analytics', 'cfpLoadingBar', '$transitions', 'HttpRequestHelper',
-function ($rootScope, $state, Authentication, authManager, StateManager, EndpointProvider, Notifications, Analytics, cfpLoadingBar, $transitions, HttpRequestHelper) {
+.run(['$rootScope', '$state', '$interval', 'Authentication', 'authManager', 'StateManager', 'EndpointProvider', 'Notifications', 'Analytics', 'SystemService', 'cfpLoadingBar', '$transitions', 'HttpRequestHelper',
+function ($rootScope, $state, $interval, Authentication, authManager, StateManager, EndpointProvider, Notifications, Analytics, SystemService, cfpLoadingBar, $transitions, HttpRequestHelper) {
   'use strict';
 
   EndpointProvider.initialize();
@@ -29,18 +31,36 @@ function ($rootScope, $state, Authentication, authManager, StateManager, Endpoin
     }
   };
 
-  $transitions.onBefore({ to: 'docker.**' }, function() {
-    HttpRequestHelper.resetAgentTargetQueue();
+  $transitions.onBefore({}, function() {
+    HttpRequestHelper.resetAgentHeaders();
   });
+
+  // Keep-alive Edge endpoints by sending a ping request every minute
+  $interval(function() {
+    ping(EndpointProvider, SystemService);
+  }, 60 * 1000)
+
 }]);
 
+function ping(EndpointProvider, SystemService) {
+  let endpoint = EndpointProvider.currentEndpoint();
+  if (endpoint !== undefined && endpoint.Type === 4) {
+    SystemService.ping(endpoint.Id);
+  }
+}
 
 function initAuthentication(authManager, Authentication, $rootScope, $state) {
   authManager.checkAuthOnRefresh();
-  authManager.redirectWhenUnauthenticated();
   Authentication.init();
-  $rootScope.$on('tokenHasExpired', function() {
-    $state.go('portainer.auth', {error: 'Your session has expired'});
+
+  // The unauthenticated event is broadcasted by the jwtInterceptor when
+  // hitting a 401. We're using this instead of the usual combination of
+  // authManager.redirectWhenUnauthenticated() + unauthenticatedRedirector
+  // to have more controls on which URL should trigger the unauthenticated state.
+  $rootScope.$on('unauthenticated', function (event, data) {
+    if (!_.includes(data.config.url, '/v2/')) {
+      $state.go('portainer.auth', { error: 'Your session has expired' });
+    }
   });
 }
 
@@ -48,7 +68,7 @@ function initAnalytics(Analytics, $rootScope) {
   Analytics.offline(false);
   Analytics.registerScriptTags();
   Analytics.registerTrackers();
-  $rootScope.$on('$stateChangeSuccess', function (event, toState, toParams, fromState, fromParams) {
+  $rootScope.$on('$stateChangeSuccess', function (event, toState) {
     Analytics.trackPage(toState.url);
     Analytics.pageView();
   });

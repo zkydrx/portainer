@@ -1,10 +1,12 @@
 angular.module('portainer.docker')
-.controller('NetworkController', ['$scope', '$state', '$transition$', '$filter', 'NetworkService', 'Container', 'ContainerHelper', 'Notifications', 'HttpRequestHelper',
-function ($scope, $state, $transition$, $filter, NetworkService, Container, ContainerHelper, Notifications, HttpRequestHelper) {
+.controller('NetworkController', ['$scope', '$state', '$transition$', '$filter', 'NetworkService', 'Container', 'Notifications', 'HttpRequestHelper', 'PREDEFINED_NETWORKS',
+function ($scope, $state, $transition$, $filter, NetworkService, Container, Notifications, HttpRequestHelper, PREDEFINED_NETWORKS) {
 
-  $scope.removeNetwork = function removeNetwork(networkId) {
+  $scope.network = {};
+
+  $scope.removeNetwork = function removeNetwork() {
     NetworkService.remove($transition$.params().id, $transition$.params().id)
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('Network removed', $transition$.params().id);
       $state.go('docker.networks', {});
     })
@@ -16,13 +18,17 @@ function ($scope, $state, $transition$, $filter, NetworkService, Container, Cont
   $scope.containerLeaveNetwork = function containerLeaveNetwork(network, container) {
     HttpRequestHelper.setPortainerAgentTargetHeader(container.NodeName);
     NetworkService.disconnectContainer($transition$.params().id, container.Id, false)
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('Container left network', $transition$.params().id);
       $state.go('docker.networks.network', { id: network.Id }, { reload: true });
     })
     .catch(function error(err) {
       Notifications.error('Failure', err, 'Unable to disconnect container from network');
     });
+  };
+
+  $scope.allowRemove = function allowRemove(item) {
+    return !PREDEFINED_NETWORKS.includes(item.Name);
   };
 
   function filterContainersInNetwork(network, containers) {

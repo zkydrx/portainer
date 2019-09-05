@@ -1,13 +1,12 @@
 angular.module('portainer.docker').component('eventsDatatable', {
-  templateUrl: 'app/docker/components/datatables/events-datatable/eventsDatatable.html',
+  templateUrl: './eventsDatatable.html',
   controller: 'GenericDatatableController',
   bindings: {
-    title: '@',
+    titleText: '@',
     titleIcon: '@',
     dataset: '<',
     tableKey: '@',
     orderBy: '@',
-    reverseOrder: '<',
-    showTextFilter: '<'
+    reverseOrder: '<'
   }
 });

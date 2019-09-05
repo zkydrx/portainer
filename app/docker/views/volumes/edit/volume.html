@@ -1,5 +1,5 @@
 <rd-header>
-  <rd-header-title title="Volume details"></rd-header-title>
+  <rd-header-title title-text="Volume details"></rd-header-title>
   <rd-header-content>
     <a ui-sref="docker.volumes">Volumes</a> &gt; <a ui-sref="docker.volumes.volume({id: volume.Id})">{{ volume.Id }}</a>
   </rd-header-content>
@@ -8,7 +8,7 @@
 <div class="row" ng-if="volume">
   <div class="col-sm-12">
     <rd-widget>
-      <rd-widget-header icon="fa-cube" title="Volume details"></rd-widget-header>
+      <rd-widget-header icon="fa-cube" title-text="Volume details"></rd-widget-header>
       <rd-widget-body classes="no-padding">
         <table class="table">
           <tbody>
@@ -16,8 +16,12 @@
               <td>ID</td>
               <td>
                 {{ volume.Id }}
-                <button class="btn btn-xs btn-danger" ng-click="removeVolume()"><i class="fa fa-trash-alt space-right" aria-hidden="true"></i>Remove this volume</button>
+                <button authorization="DockerVolumeDelete" class="btn btn-xs btn-danger" ng-click="removeVolume()"><i class="fa fa-trash-alt space-right" aria-hidden="true"></i>Remove this volume</button>
               </td>
+            </tr>
+            <tr>
+              <td>Created</td>
+              <td>{{ volume.CreatedAt | getisodate }}</td>
             </tr>
             <tr>
               <td>Mount path</td>
@@ -45,6 +49,31 @@
   </div>
 </div>
 
+<div class="row" ng-if="isCioDriver">
+  <div class="col-sm-12">
+    <volume-storidge-info volume="storidgeVolume">
+    </volume-storidge-info>
+  </div>
+</div>
+
+<div class="row" ng-if="isCioDriver">
+  <div class="col-sm-12">
+    <storidge-snapshot-creation volume-id="storidgeVolume.Vdisk" ng-if="storidgeVolume.SnapshotEnabled">
+    </storidge-snapshot-creation>
+  </div>
+</div>
+
+<div class="row" ng-if="isCioDriver && storidgeVolume.SnapshotEnabled">
+  <div class="col-sm-12">
+    <storidge-snapshots-datatable
+      title-text="Snapshots" title-icon="fa-camera"
+      dataset="storidgeSnapshots" table-key="storidgeSnapshots"
+      order-by="Id"
+      remove-action="removeSnapshot">
+    </storidge-snapshots-datatable>
+  </div>
+</div>
+
 <!-- access-control-panel -->
 <por-access-control-panel
   ng-if="volume && applicationState.application.authentication"
@@ -57,7 +86,7 @@
 <div class="row" ng-if="!(volume.Options | emptyobject)">
   <div class="col-lg-12 col-md-12 col-xs-12">
     <rd-widget>
-      <rd-widget-header icon="fa-cogs" title="Volume options"></rd-widget-header>
+      <rd-widget-header icon="fa-cogs" title-text="Volume options"></rd-widget-header>
       <rd-widget-body classes="no-padding">
         <table class="table">
           <tbody>
@@ -74,7 +103,7 @@
 <div class="row" ng-if="containersUsingVolume.length > 0">
   <div class="col-lg-12 col-md-12 col-xs-12">
     <rd-widget>
-      <rd-widget-header icon="fa-server" title="Containers using volume"></rd-widget-header>
+      <rd-widget-header icon="fa-server" title-text="Containers using volume"></rd-widget-header>
       <rd-widget-body classes="no-padding">
         <table class="table">
           <thead>

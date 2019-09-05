@@ -1,6 +1,8 @@
+import _ from 'lodash-es';
+
 angular.module('portainer.app')
-.controller('RegistriesController', ['$q', '$scope', '$state', 'RegistryService', 'DockerHubService', 'ModalService', 'Notifications', 'PaginationService',
-function ($q, $scope, $state, RegistryService, DockerHubService, ModalService, Notifications, PaginationService) {
+.controller('RegistriesController', ['$q', '$scope', '$state', 'RegistryService', 'DockerHubService', 'ModalService', 'Notifications', 'ExtensionService', 'Authentication',
+function ($q, $scope, $state, RegistryService, DockerHubService, ModalService, Notifications, ExtensionService, Authentication) {
 
   $scope.state = {
     actionInProgress: false
@@ -10,12 +12,18 @@ function ($q, $scope, $state, RegistryService, DockerHubService, ModalService, N
     dockerHubPassword: ''
   };
 
+  const nonBrowsableUrls = ['quay.io'];
+
+  $scope.canBrowse = function(item) {
+    return ! _.includes(nonBrowsableUrls, item.URL);
+  }
+
   $scope.updateDockerHub = function() {
     var dockerhub = $scope.dockerhub;
     dockerhub.Password = $scope.formValues.dockerHubPassword;
     $scope.state.actionInProgress = true;
     DockerHubService.update(dockerhub)
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('DockerHub registry updated');
     })
     .catch(function error(err) {
@@ -60,11 +68,17 @@ function ($q, $scope, $state, RegistryService, DockerHubService, ModalService, N
   function initView() {
     $q.all({
       registries: RegistryService.registries(),
-      dockerhub: DockerHubService.dockerhub()
+      dockerhub: DockerHubService.dockerhub(),
+      registryManagement: ExtensionService.extensionEnabled(ExtensionService.EXTENSIONS.REGISTRY_MANAGEMENT)
     })
     .then(function success(data) {
       $scope.registries = data.registries;
       $scope.dockerhub = data.dockerhub;
+      $scope.registryManagementAvailable = data.registryManagement;
+      var authenticationEnabled = $scope.applicationState.application.authentication;
+      if (authenticationEnabled) {
+        $scope.isAdmin = Authentication.isAdmin();
+      }
     })
     .catch(function error(err) {
       $scope.registries = [];

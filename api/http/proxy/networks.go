@@ -3,7 +3,7 @@ package proxy
 import (
 	"net/http"
 
-	"github.com/portainer/portainer"
+	"github.com/portainer/portainer/api"
 )
 
 const (
@@ -24,7 +24,7 @@ func networkListOperation(response *http.Response, executor *operationExecutor) 
 		return err
 	}
 
-	if executor.operationContext.isAdmin {
+	if executor.operationContext.isAdmin || executor.operationContext.endpointResourceAccess {
 		responseArray, err = decorateNetworkList(responseArray, executor.operationContext.resourceControls)
 	} else {
 		responseArray, err = filterNetworkList(responseArray, executor.operationContext)
@@ -53,17 +53,17 @@ func networkInspectOperation(response *http.Response, executor *operationExecuto
 
 	networkID := responseObject[networkIdentifier].(string)
 	responseObject, access := applyResourceAccessControl(responseObject, networkID, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
 	networkLabels := extractNetworkLabelsFromNetworkInspectObject(responseObject)
 	responseObject, access = applyResourceAccessControlFromLabel(networkLabels, responseObject, networkLabelForStackIdentifier, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
-	return rewriteResponse(response, responseObject, http.StatusOK)
+	return rewriteAccessDeniedResponse(response)
 }
 
 // extractNetworkLabelsFromNetworkInspectObject retrieve the Labels of the network if present.
@@ -110,7 +110,7 @@ func decorateNetworkList(networkData []interface{}, resourceControls []portainer
 // Authorized networks are decorated during the process.
 // Resource controls checks are based on: resource identifier, stack identifier (from label).
 // Network object schema reference: https://docs.docker.com/engine/api/v1.28/#operation/NetworkList
-func filterNetworkList(networkData []interface{}, context *restrictedOperationContext) ([]interface{}, error) {
+func filterNetworkList(networkData []interface{}, context *restrictedDockerOperationContext) ([]interface{}, error) {
 	filteredNetworkData := make([]interface{}, 0)
 
 	for _, network := range networkData {
@@ -121,12 +121,13 @@ func filterNetworkList(networkData []interface{}, context *restrictedOperationCo
 
 		networkID := networkObject[networkIdentifier].(string)
 		networkObject, access := applyResourceAccessControl(networkObject, networkID, context)
-		if access {
+		if !access {
 			networkLabels := extractNetworkLabelsFromNetworkListObject(networkObject)
 			networkObject, access = applyResourceAccessControlFromLabel(networkLabels, networkObject, networkLabelForStackIdentifier, context)
-			if access {
-				filteredNetworkData = append(filteredNetworkData, networkObject)
-			}
+		}
+
+		if access {
+			filteredNetworkData = append(filteredNetworkData, networkObject)
 		}
 	}
 

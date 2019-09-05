@@ -1,20 +1,33 @@
 angular.module('portainer.app')
-.controller('SettingsController', ['$scope', '$state', 'Notifications', 'SettingsService', 'StateManager', 'DEFAULT_TEMPLATES_URL',
-function ($scope, $state, Notifications, SettingsService, StateManager, DEFAULT_TEMPLATES_URL) {
+.controller('SettingsController', ['$scope', '$state', 'Notifications', 'SettingsService', 'StateManager', 
+function ($scope, $state, Notifications, SettingsService, StateManager) {
 
   $scope.state = {
-    actionInProgress: false
+    actionInProgress: false,
+    availableEdgeAgentCheckinOptions: [
+      {
+        key: '5 seconds',
+        value: 5
+      },
+      {
+        key: '10 seconds',
+        value: 10
+      },
+      {
+        key: '30 seconds',
+        value: 30
+      },
+    ]
   };
 
   $scope.formValues = {
     customLogo: false,
-    customTemplates: false,
-    donationHeader: true,
-    externalContributions: false,
+    externalTemplates: false,
     restrictBindMounts: false,
     restrictPrivilegedMode: false,
     labelName: '',
-    labelValue: ''
+    labelValue: '',
+    enableHostManagementFeatures: false
   };
 
   $scope.removeFilteredContainerLabel = function(index) {
@@ -42,14 +55,13 @@ function ($scope, $state, Notifications, SettingsService, StateManager, DEFAULT_
       settings.LogoURL = '';
     }
 
-    if (!$scope.formValues.customTemplates) {
-      settings.TemplatesURL = DEFAULT_TEMPLATES_URL;
+    if (!$scope.formValues.externalTemplates) {
+      settings.TemplatesURL = '';
     }
 
-    settings.DisplayDonationHeader = !$scope.formValues.donationHeader;
-    settings.DisplayExternalContributors = !$scope.formValues.externalContributions;
     settings.AllowBindMountsForRegularUsers = !$scope.formValues.restrictBindMounts;
     settings.AllowPrivilegedModeForRegularUsers = !$scope.formValues.restrictPrivilegedMode;
+    settings.EnableHostManagementFeatures = $scope.formValues.enableHostManagementFeatures;
 
     $scope.state.actionInProgress = true;
     updateSettings(settings);
@@ -57,11 +69,11 @@ function ($scope, $state, Notifications, SettingsService, StateManager, DEFAULT_
 
   function updateSettings(settings) {
     SettingsService.update(settings)
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('Settings updated');
       StateManager.updateLogo(settings.LogoURL);
-      StateManager.updateDonationHeader(settings.DisplayDonationHeader);
-      StateManager.updateExternalContributions(settings.DisplayExternalContributors);
+      StateManager.updateSnapshotInterval(settings.SnapshotInterval);
+      StateManager.updateEnableHostManagementFeatures(settings.EnableHostManagementFeatures);
       $state.reload();
     })
     .catch(function error(err) {
@@ -80,13 +92,12 @@ function ($scope, $state, Notifications, SettingsService, StateManager, DEFAULT_
       if (settings.LogoURL !== '') {
         $scope.formValues.customLogo = true;
       }
-      if (settings.TemplatesURL !== DEFAULT_TEMPLATES_URL) {
-        $scope.formValues.customTemplates = true;
+      if (settings.TemplatesURL !== '') {
+        $scope.formValues.externalTemplates = true;
       }
-      $scope.formValues.donationHeader = !settings.DisplayDonationHeader;
-      $scope.formValues.externalContributions = !settings.DisplayExternalContributors;
       $scope.formValues.restrictBindMounts = !settings.AllowBindMountsForRegularUsers;
       $scope.formValues.restrictPrivilegedMode = !settings.AllowPrivilegedModeForRegularUsers;
+      $scope.formValues.enableHostManagementFeatures = settings.EnableHostManagementFeatures;
     })
     .catch(function error(err) {
       Notifications.error('Failure', err, 'Unable to retrieve application settings');

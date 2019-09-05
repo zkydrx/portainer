@@ -1,13 +1,16 @@
+import {deleteImageHandler, jsonObjectsToArrayHandler} from './response/handlers';
+import {imageGetResponse} from './response/image';
+
 angular.module('portainer.docker')
-.factory('Image', ['$resource', 'API_ENDPOINT_ENDPOINTS', 'EndpointProvider', 'HttpRequestHelper',
-function ImageFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider, HttpRequestHelper) {
+.factory('Image', ['$resource', 'API_ENDPOINT_ENDPOINTS', 'EndpointProvider', 'HttpRequestHelper', 'ImagesInterceptor',
+function ImageFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider, HttpRequestHelper, ImagesInterceptor) {
   'use strict';
 
   return $resource(API_ENDPOINT_ENDPOINTS + '/:endpointId/docker/images/:id/:action', {
     endpointId: EndpointProvider.endpointID
   },
   {
-    query: {method: 'GET', params: {all: 0, action: 'json'}, isArray: true},
+    query: {method: 'GET', params: {all: 0, action: 'json'}, isArray: true, interceptor: ImagesInterceptor, timeout: 15000},
     get: {method: 'GET', params: {action: 'json'}},
     search: {method: 'GET', params: {action: 'search'}},
     history: {method: 'GET', params: {action: 'history'}, isArray: true},
@@ -24,6 +27,12 @@ function ImageFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider, HttpR
       method: 'POST', params: {action: 'create', fromImage: '@fromImage', tag: '@tag'},
       isArray: true, transformResponse: jsonObjectsToArrayHandler,
       headers: { 'X-Registry-Auth': HttpRequestHelper.registryAuthenticationHeader },
+      ignoreLoadingBar: true
+    },
+    download: {
+      method: 'GET', params: {action:'get', names: '@names'},
+      transformResponse: imageGetResponse,
+      responseType: 'blob',
       ignoreLoadingBar: true
     },
     remove: {

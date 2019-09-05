@@ -1,6 +1,14 @@
+import _ from 'lodash-es';
+import { AccessControlFormData } from '../../../../portainer/components/accessControlForm/porAccessControlFormModel';
+
+require('./includes/update-restart.html')
+require('./includes/secret.html')
+require('./includes/config.html')
+require('./includes/resources-placement.html')
+
 angular.module('portainer.docker')
-.controller('CreateServiceController', ['$q', '$scope', '$state', '$timeout', 'Service', 'ServiceHelper', 'ConfigService', 'ConfigHelper', 'SecretHelper', 'SecretService', 'VolumeService', 'NetworkService', 'ImageHelper', 'LabelHelper', 'Authentication', 'ResourceControlService', 'Notifications', 'FormValidator', 'PluginService', 'RegistryService', 'HttpRequestHelper', 'NodeService', 'SettingsService',
-function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, ConfigHelper, SecretHelper, SecretService, VolumeService, NetworkService, ImageHelper, LabelHelper, Authentication, ResourceControlService, Notifications, FormValidator, PluginService, RegistryService, HttpRequestHelper, NodeService, SettingsService) {
+.controller('CreateServiceController', ['$q', '$scope', '$state', '$timeout', 'Service', 'ServiceHelper', 'ConfigService', 'ConfigHelper', 'SecretHelper', 'SecretService', 'VolumeService', 'NetworkService', 'ImageHelper', 'LabelHelper', 'Authentication', 'ResourceControlService', 'Notifications', 'FormValidator', 'PluginService', 'RegistryService', 'HttpRequestHelper', 'NodeService', 'SettingsService', 'WebhookService','EndpointProvider',
+function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, ConfigHelper, SecretHelper, SecretService, VolumeService, NetworkService, ImageHelper, LabelHelper, Authentication, ResourceControlService, Notifications, FormValidator, PluginService, RegistryService, HttpRequestHelper, NodeService, SettingsService, WebhookService,EndpointProvider) {
 
   $scope.formValues = {
     Name: '',
@@ -40,7 +48,8 @@ function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, C
     RestartMaxAttempts: 0,
     RestartWindow: '0s',
     LogDriverName: '',
-    LogDriverOpts: []
+    LogDriverOpts: [],
+    Webhook: false
   };
 
   $scope.state = {
@@ -142,7 +151,7 @@ function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, C
     $scope.formValues.ContainerLabels.splice(index, 1);
   };
 
-  $scope.addLogDriverOpt = function(value) {
+  $scope.addLogDriverOpt = function() {
     $scope.formValues.LogDriverOpts.push({ name: '', value: ''});
   };
 
@@ -422,9 +431,14 @@ function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, C
     var registry = $scope.formValues.Registry;
     var authenticationDetails = registry.Authentication ? RegistryService.encodedCredentials(registry) : '';
     HttpRequestHelper.setRegistryAuthenticationHeader(authenticationDetails);
+
+    var serviceIdentifier;
     Service.create(config).$promise
     .then(function success(data) {
-      var serviceIdentifier = data.ID;
+      serviceIdentifier = data.ID;
+      return $q.when($scope.formValues.Webhook && WebhookService.createServiceWebhook(serviceIdentifier, EndpointProvider.endpointID()));
+    })
+    .then(function success() {
       var userId = Authentication.getUserDetails().ID;
       return ResourceControlService.applyResourceControl('service', serviceIdentifier, userId, accessControlData, []);
     })
@@ -453,12 +467,9 @@ function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, C
   }
 
   $scope.create = function createService() {
-
     var accessControlData = $scope.formValues.AccessControlData;
-    var userDetails = Authentication.getUserDetails();
-    var isAdmin = userDetails.role === 1;
 
-    if (!validateForm(accessControlData, isAdmin)) {
+    if (!validateForm(accessControlData, $scope.isAdmin)) {
       return;
     }
 
@@ -492,11 +503,10 @@ function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, C
 
   function initView() {
     var apiVersion = $scope.applicationState.endpoint.apiVersion;
-    var provider = $scope.applicationState.endpoint.mode.provider;
 
     $q.all({
       volumes: VolumeService.volumes(),
-      networks: NetworkService.networks(true, true, false, false),
+      networks: NetworkService.networks(true, true, false),
       secrets: apiVersion >= 1.25 ? SecretService.secrets() : [],
       configs: apiVersion >= 1.30 ? ConfigService.configs() : [],
       nodes: NodeService.nodes(),
@@ -511,8 +521,7 @@ function ($q, $scope, $state, $timeout, Service, ServiceHelper, ConfigService, C
       $scope.availableLoggingDrivers = data.availableLoggingDrivers;
       initSlidersMaxValuesBasedOnNodeData(data.nodes);
       $scope.allowBindMounts = data.settings.AllowBindMountsForRegularUsers;
-      var userDetails = Authentication.getUserDetails();
-      $scope.isAdmin = userDetails.role === 1;
+      $scope.isAdmin = Authentication.isAdmin();
     })
     .catch(function error(err) {
       Notifications.error('Failure', err, 'Unable to initialize view');

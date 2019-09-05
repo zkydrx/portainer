@@ -1,15 +1,16 @@
 angular.module('portainer.app').component('registriesDatatable', {
-  templateUrl: 'app/portainer/components/datatables/registries-datatable/registriesDatatable.html',
+  templateUrl: './registriesDatatable.html',
   controller: 'GenericDatatableController',
   bindings: {
-    title: '@',
+    titleText: '@',
     titleIcon: '@',
     dataset: '<',
     tableKey: '@',
     orderBy: '@',
     reverseOrder: '<',
-    showTextFilter: '<',
     accessManagement: '<',
-    removeAction: '<'
+    removeAction: '<',
+    registryManagement: '<',
+    canBrowse: '<'
   }
 });

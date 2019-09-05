@@ -1,3 +1,5 @@
+import bootbox from 'bootbox';
+
 angular.module('portainer.app')
 .factory('ModalService', [function ModalServiceFactory() {
   'use strict';
@@ -25,6 +27,14 @@ angular.module('portainer.app')
     return buttons;
   };
 
+  service.enlargeImage = function(image) {
+    bootbox.dialog({
+      message: '<img src="' + image + '" style="width:100%" />',
+      className: 'image-zoom-modal',
+      onEscape: true
+    });
+  };
+
   service.confirm = function(options){
     var box = bootbox.confirm({
       title: options.title,
@@ -46,7 +56,7 @@ angular.module('portainer.app')
     applyBoxCSS(box);
   };
 
-  service.customPrompt = function(options) {
+  service.customPrompt = function(options, optionToggled) {
     var box = bootbox.prompt({
       title: options.title,
       inputType: options.inputType,
@@ -56,10 +66,10 @@ angular.module('portainer.app')
     });
     applyBoxCSS(box);
     box.find('.bootbox-body').prepend('<p>' + options.message + '</p>');
-    box.find('.bootbox-input-checkbox').prop('checked', true);
+    box.find('.bootbox-input-checkbox').prop('checked', optionToggled);
   };
 
-  service.confirmAccessControlUpdate = function(callback, msg) {
+  service.confirmAccessControlUpdate = function(callback) {
     service.confirm({
       title: 'Are you sure ?',
       message: 'Changing the ownership of this resource will potentially restrict its management to some users.',
@@ -139,17 +149,31 @@ angular.module('portainer.app')
         }
       },
       callback: callback
-    });
+    }, false);
   };
 
-  service.confirmExperimentalFeature = function(callback) {
+  service.confirmEndpointSnapshot = function(callback) {
     service.confirm({
-      title: 'Experimental feature',
-      message: 'This feature is currently experimental, please use with caution.',
+      title: 'Are you sure?',
+      message: 'Triggering a manual refresh will poll each endpoint to retrieve its information, this may take a few moments.',
       buttons: {
         confirm: {
           label: 'Continue',
-          className: 'btn-danger'
+          className: 'btn-primary'
+        }
+      },
+      callback: callback
+    });
+  };
+
+  service.confirmImageExport = function(callback) {
+    service.confirm({
+      title: 'Caution',
+      message: 'The export may take several minutes, do not navigate away whilst the export is in progress.',
+      buttons: {
+        confirm: {
+          label: 'Continue',
+          className: 'btn-primary'
         }
       },
       callback: callback
@@ -157,9 +181,16 @@ angular.module('portainer.app')
   };
 
   service.confirmServiceForceUpdate = function(message, callback) {
-    service.confirm({
+    service.customPrompt({
       title: 'Are you sure ?',
       message: message,
+      inputType: 'checkbox',
+      inputOptions: [
+        {
+          text: 'Pull latest image version<i></i>',
+          value: '1'
+        }
+      ],
       buttons: {
         confirm: {
           label: 'Update',
@@ -167,7 +198,7 @@ angular.module('portainer.app')
         }
       },
       callback: callback
-    });
+    }, false);
   };
 
   return service;

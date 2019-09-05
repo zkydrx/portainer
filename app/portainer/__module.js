@@ -13,7 +13,7 @@ angular.module('portainer.app', [])
     },
     views: {
       'sidebar@': {
-        templateUrl: 'app/portainer/views/sidebar/sidebar.html',
+        templateUrl: './views/sidebar/sidebar.html',
         controller: 'SidebarController'
       }
     }
@@ -30,7 +30,7 @@ angular.module('portainer.app', [])
     url: '/about',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/about/about.html'
+        templateUrl: './views/about/about.html',
       }
     }
   };
@@ -40,7 +40,7 @@ angular.module('portainer.app', [])
     url: '/account',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/account/account.html',
+        templateUrl: './views/account/account.html',
         controller: 'AccountController'
       }
     }
@@ -55,13 +55,113 @@ angular.module('portainer.app', [])
     },
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/auth/auth.html',
+        templateUrl: './views/auth/auth.html',
         controller: 'AuthenticationController'
       },
       'sidebar@': {}
     },
     data: {
       requiresLogin: false
+    }
+  };
+
+  var endpoints = {
+    name: 'portainer.endpoints',
+    url: '/endpoints',
+    views: {
+      'content@': {
+        templateUrl: './views/endpoints/endpoints.html',
+        controller: 'EndpointsController'
+      }
+    }
+  };
+
+  var endpoint = {
+    name: 'portainer.endpoints.endpoint',
+    url: '/:id',
+    views: {
+      'content@': {
+        templateUrl: './views/endpoints/edit/endpoint.html',
+        controller: 'EndpointController'
+      }
+    }
+  };
+
+  var endpointCreation = {
+    name: 'portainer.endpoints.new',
+    url: '/new',
+    views: {
+      'content@': {
+        templateUrl: './views/endpoints/create/createendpoint.html',
+        controller: 'CreateEndpointController'
+      }
+    }
+  };
+
+  var endpointAccess = {
+    name: 'portainer.endpoints.endpoint.access',
+    url: '/access',
+    views: {
+      'content@': {
+        templateUrl: './views/endpoints/access/endpointAccess.html',
+        controller: 'EndpointAccessController',
+        controllerAs: 'ctrl'
+      }
+    }
+  };
+
+  var groups = {
+    name: 'portainer.groups',
+    url: '/groups',
+    views: {
+      'content@': {
+        templateUrl: './views/groups/groups.html',
+        controller: 'GroupsController'
+      }
+    }
+  };
+
+  var group = {
+    name: 'portainer.groups.group',
+    url: '/:id',
+    views: {
+      'content@': {
+        templateUrl: './views/groups/edit/group.html',
+        controller: 'GroupController'
+      }
+    }
+  };
+
+  var groupCreation = {
+    name: 'portainer.groups.new',
+    url: '/new',
+    views: {
+      'content@': {
+        templateUrl: './views/groups/create/creategroup.html',
+        controller: 'CreateGroupController'
+      }
+    }
+  };
+
+  var groupAccess = {
+    name: 'portainer.groups.group.access',
+    url: '/access',
+    views: {
+      'content@': {
+        templateUrl: './views/groups/access/groupAccess.html',
+        controller: 'GroupAccessController'
+      }
+    }
+  };
+
+  var home = {
+    name: 'portainer.home',
+    url: '/home',
+    views: {
+      'content@': {
+        templateUrl: './views/home/home.html',
+        controller: 'HomeController'
+      }
     }
   };
 
@@ -82,7 +182,7 @@ angular.module('portainer.app', [])
     url: '/endpoint',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/init/endpoint/initEndpoint.html',
+        templateUrl: './views/init/endpoint/initEndpoint.html',
         controller: 'InitEndpointController'
       }
     }
@@ -93,96 +193,30 @@ angular.module('portainer.app', [])
     url: '/admin',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/init/admin/initAdmin.html',
+        templateUrl: './views/init/admin/initAdmin.html',
         controller: 'InitAdminController'
       }
     }
   };
 
-  var endpoints = {
-    name: 'portainer.endpoints',
-    url: '/endpoints',
+  var extensions = {
+    name: 'portainer.extensions',
+    url: '/extensions',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/endpoints/endpoints.html',
-        controller: 'EndpointsController'
+        templateUrl: './views/extensions/extensions.html',
+        controller: 'ExtensionsController'
       }
     }
   };
 
-  var endpoint = {
-    name: 'portainer.endpoints.endpoint',
-    url: '/:id',
+  var extension = {
+    name: 'portainer.extensions.extension',
+    url: '/extension/:id',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/endpoints/edit/endpoint.html',
-        controller: 'EndpointController'
-      }
-    }
-  };
-
-  var endpointCreation  = {
-    name: 'portainer.endpoints.new',
-    url: '/new',
-    views: {
-      'content@': {
-        templateUrl: 'app/portainer/views/endpoints/create/createendpoint.html',
-        controller: 'CreateEndpointController'
-      }
-    }
-  };
-
-  var endpointAccess = {
-    name: 'portainer.endpoints.endpoint.access',
-    url: '/access',
-    views: {
-      'content@': {
-        templateUrl: 'app/portainer/views/endpoints/access/endpointAccess.html',
-        controller: 'EndpointAccessController'
-      }
-    }
-  };
-
-  var groups = {
-    name: 'portainer.groups',
-    url: '/groups',
-    views: {
-      'content@': {
-        templateUrl: 'app/portainer/views/groups/groups.html',
-        controller: 'GroupsController'
-      }
-    }
-  };
-
-  var group = {
-    name: 'portainer.groups.group',
-    url: '/:id',
-    views: {
-      'content@': {
-        templateUrl: 'app/portainer/views/groups/edit/group.html',
-        controller: 'GroupController'
-      }
-    }
-  };
-
-  var groupCreation = {
-    name: 'portainer.groups.new',
-    url: '/new',
-    views: {
-      'content@': {
-        templateUrl: 'app/portainer/views/groups/create/creategroup.html',
-        controller: 'CreateGroupController'
-      }
-    }
-  };
-
-  var groupAccess = {
-    name: 'portainer.groups.group.access',
-    url: '/access',
-    views: {
-      'content@': {
-        templateUrl: 'app/portainer/views/groups/access/groupAccess.html',
-        controller: 'GroupAccessController'
+        templateUrl: './views/extensions/inspect/extension.html',
+        controller: 'ExtensionController'
       }
     }
   };
@@ -192,7 +226,7 @@ angular.module('portainer.app', [])
     url: '/registries',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/registries/registries.html',
+        templateUrl: './views/registries/registries.html',
         controller: 'RegistriesController'
       }
     }
@@ -203,18 +237,18 @@ angular.module('portainer.app', [])
     url: '/:id',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/registries/edit/registry.html',
+        templateUrl: './views/registries/edit/registry.html',
         controller: 'RegistryController'
       }
     }
   };
 
-  var registryCreation  = {
+  var registryCreation = {
     name: 'portainer.registries.new',
     url: '/new',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/registries/create/createregistry.html',
+        templateUrl: './views/registries/create/createregistry.html',
         controller: 'CreateRegistryController'
       }
     }
@@ -225,8 +259,41 @@ angular.module('portainer.app', [])
     url: '/access',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/registries/access/registryAccess.html',
+        templateUrl: './views/registries/access/registryAccess.html',
         controller: 'RegistryAccessController'
+      }
+    }
+  };
+
+  var schedules = {
+    name: 'portainer.schedules',
+    url: '/schedules',
+    views: {
+      'content@': {
+        templateUrl: './views/schedules/schedules.html',
+        controller: 'SchedulesController'
+      }
+    }
+  };
+
+  var schedule = {
+    name: 'portainer.schedules.schedule',
+    url: '/:id',
+    views: {
+      'content@': {
+        templateUrl: './views/schedules/edit/schedule.html',
+        controller: 'ScheduleController'
+      }
+    }
+  };
+
+  var scheduleCreation = {
+    name: 'portainer.schedules.new',
+    url: '/new',
+    views: {
+      'content@': {
+        templateUrl: './views/schedules/create/createschedule.html',
+        controller: 'CreateScheduleController'
       }
     }
   };
@@ -236,7 +303,7 @@ angular.module('portainer.app', [])
     url: '/settings',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/settings/settings.html',
+        templateUrl: './views/settings/settings.html',
         controller: 'SettingsController'
       }
     }
@@ -247,9 +314,100 @@ angular.module('portainer.app', [])
     url: '/auth',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/settings/authentication/settingsAuthentication.html',
+        templateUrl: './views/settings/authentication/settingsAuthentication.html',
         controller: 'SettingsAuthenticationController'
       }
+    }
+  };
+
+  var stacks = {
+    name: 'portainer.stacks',
+    url: '/stacks',
+    views: {
+      'content@': {
+        templateUrl: './views/stacks/stacks.html',
+        controller: 'StacksController'
+      }
+    },
+    resolve: {
+      endpointID: ['EndpointProvider', '$state',
+        function (EndpointProvider, $state) {
+          var id = EndpointProvider.endpointID();
+          if (!id) {
+            return $state.go('portainer.home');
+          }
+        }
+      ]
+    }
+  };
+
+  var stack = {
+    name: 'portainer.stacks.stack',
+    url: '/:name?id&type&external',
+    views: {
+      'content@': {
+        templateUrl: './views/stacks/edit/stack.html',
+        controller: 'StackController'
+      }
+    }
+  };
+
+  var stackCreation = {
+    name: 'portainer.stacks.newstack',
+    url: '/newstack',
+    views: {
+      'content@': {
+        templateUrl: './views/stacks/create/createstack.html',
+        controller: 'CreateStackController'
+      }
+    }
+  };
+
+  var support = {
+    name: 'portainer.support',
+    url: '/support',
+    views: {
+      'content@': {
+        templateUrl: './views/support/support.html',
+        controller: 'SupportController'
+      }
+    },
+    params: {
+      product: {}
+    }
+  };
+
+  var supportProduct = {
+    name: 'portainer.support.product',
+    url: '/product',
+    views: {
+      'content@': {
+        templateUrl: './views/support/product/product.html',
+        controller: 'SupportProductController'
+      }
+    }
+  };
+
+  var tags = {
+    name: 'portainer.tags',
+    url: '/tags',
+    views: {
+      'content@': {
+        templateUrl: './views/tags/tags.html',
+        controller: 'TagsController'
+      }
+    }
+  };
+
+  var updatePassword = {
+    name: 'portainer.updatePassword',
+    url: '/update-password',
+    views: {
+      'content@': {
+        templateUrl: './views/update-password/updatePassword.html',
+        controller: 'UpdatePasswordController'
+      },
+      'sidebar@': {}
     }
   };
 
@@ -258,7 +416,7 @@ angular.module('portainer.app', [])
     url: '/users',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/users/users.html',
+        templateUrl: './views/users/users.html',
         controller: 'UsersController'
       }
     }
@@ -269,7 +427,7 @@ angular.module('portainer.app', [])
     url: '/:id',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/users/edit/user.html',
+        templateUrl: './views/users/edit/user.html',
         controller: 'UserController'
       }
     }
@@ -280,7 +438,7 @@ angular.module('portainer.app', [])
     url: '/teams',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/teams/teams.html',
+        templateUrl: './views/teams/teams.html',
         controller: 'TeamsController'
       }
     }
@@ -291,8 +449,51 @@ angular.module('portainer.app', [])
     url: '/:id',
     views: {
       'content@': {
-        templateUrl: 'app/portainer/views/teams/edit/team.html',
+        templateUrl: './views/teams/edit/team.html',
         controller: 'TeamController'
+      }
+    }
+  };
+
+  var templates = {
+    name: 'portainer.templates',
+    url: '/templates',
+    resolve: {
+      endpointID: ['EndpointProvider', '$state',
+        function (EndpointProvider, $state) {
+          var id = EndpointProvider.endpointID();
+          if (!id) {
+            return $state.go('portainer.home');
+          }
+        }
+      ]
+    },
+    views: {
+      'content@': {
+        templateUrl: './views/templates/templates.html',
+        controller: 'TemplatesController'
+      }
+    }
+  };
+
+  var template = {
+    name: 'portainer.templates.template',
+    url: '/:id',
+    views: {
+      'content@': {
+        templateUrl: './views/templates/edit/template.html',
+        controller: 'TemplateController'
+      }
+    }
+  };
+
+  var templateCreation = {
+    name: 'portainer.templates.new',
+    url: '/new',
+    views: {
+      'content@': {
+        templateUrl: './views/templates/create/createtemplate.html',
+        controller: 'CreateTemplateController'
       }
     }
   };
@@ -302,9 +503,6 @@ angular.module('portainer.app', [])
   $stateRegistryProvider.register(about);
   $stateRegistryProvider.register(account);
   $stateRegistryProvider.register(authentication);
-  $stateRegistryProvider.register(init);
-  $stateRegistryProvider.register(initEndpoint);
-  $stateRegistryProvider.register(initAdmin);
   $stateRegistryProvider.register(endpoints);
   $stateRegistryProvider.register(endpoint);
   $stateRegistryProvider.register(endpointAccess);
@@ -313,14 +511,33 @@ angular.module('portainer.app', [])
   $stateRegistryProvider.register(group);
   $stateRegistryProvider.register(groupAccess);
   $stateRegistryProvider.register(groupCreation);
+  $stateRegistryProvider.register(home);
+  $stateRegistryProvider.register(init);
+  $stateRegistryProvider.register(initEndpoint);
+  $stateRegistryProvider.register(initAdmin);
+  $stateRegistryProvider.register(extensions);
+  $stateRegistryProvider.register(extension);
   $stateRegistryProvider.register(registries);
   $stateRegistryProvider.register(registry);
   $stateRegistryProvider.register(registryAccess);
   $stateRegistryProvider.register(registryCreation);
+  $stateRegistryProvider.register(schedules);
+  $stateRegistryProvider.register(schedule);
+  $stateRegistryProvider.register(scheduleCreation);
   $stateRegistryProvider.register(settings);
   $stateRegistryProvider.register(settingsAuthentication);
+  $stateRegistryProvider.register(stacks);
+  $stateRegistryProvider.register(stack);
+  $stateRegistryProvider.register(stackCreation);
+  $stateRegistryProvider.register(support);
+  $stateRegistryProvider.register(supportProduct);
+  $stateRegistryProvider.register(tags);
+  $stateRegistryProvider.register(updatePassword);
   $stateRegistryProvider.register(users);
   $stateRegistryProvider.register(user);
   $stateRegistryProvider.register(teams);
   $stateRegistryProvider.register(team);
+  $stateRegistryProvider.register(templates);
+  $stateRegistryProvider.register(template);
+  $stateRegistryProvider.register(templateCreation);
 }]);

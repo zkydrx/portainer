@@ -1,5 +1,5 @@
 <rd-header>
-  <rd-header-title title="Create service"></rd-header-title>
+  <rd-header-title title-text="Create service"></rd-header-title>
   <rd-header-content>
     <a ui-sref="docker.services">Services</a> &gt; Add service
   </rd-header-content>
@@ -22,9 +22,12 @@
             Image configuration
           </div>
           <!-- image-and-registry -->
-          <div class="form-group">
-            <por-image-registry image="formValues.Image" registry="formValues.Registry" auto-complete="true"></por-image-registry>
-          </div>
+          <por-image-registry
+            image="formValues.Image"
+            registry="formValues.Registry"
+            auto-complete="true"
+            label-class="col-sm-1" input-class="col-sm-11 col-md-5"
+          ></por-image-registry>
           <!-- !image-and-registry -->
           <div class="col-sm-12 form-section-title">
             Scheduling
@@ -98,6 +101,22 @@
             <!-- !port-mapping-input-list -->
           </div>
           <!-- !port-mapping -->
+          <!-- create-webhook -->
+          <div class="col-sm-12 form-section-title">
+            Webhooks
+          </div>
+          <div class="form-group">
+            <div class="col-sm-12">
+              <label class="control-label text-left">
+                Create a service webhook
+                <portainer-tooltip position="top" message="Create a webhook (or callback URI) to automate the update of this service. Sending a POST request to this callback URI (without requiring any authentication) will pull the most up-to-date version of the associated image and re-deploy this service."></portainer-tooltip>
+              </label>
+              <label class="switch" style="margin-left: 20px;">
+                <input type="checkbox" ng-model="formValues.Webhook"><i></i>
+              </label>
+            </div>
+          </div>
+          <!-- !create-webhook  -->
           <!-- access-control -->
           <por-access-control-form form-data="formValues.AccessControlData" ng-if="applicationState.application.authentication"></por-access-control-form>
           <!-- !access-control -->
@@ -142,7 +161,7 @@
             <form class="form-horizontal" style="margin-top: 15px;">
               <div class="col-sm-12 form-section-title">
                 Command
-              </div>                    
+              </div>
               <!-- command-input -->
               <div class="form-group">
                 <label for="service_command" class="col-sm-2 col-lg-1 control-label text-left">Command</label>
@@ -202,12 +221,12 @@
               <div class="col-sm-12 form-section-title">
                 Logging
               </div>
-              <!-- logging-driver -->              
+              <!-- logging-driver -->
               <div class="form-group">
                 <label for="log-driver" class="col-sm-2 col-lg-1 control-label text-left">Driver</label>
                 <div class="col-sm-4">
                   <select class="form-control" ng-model="formValues.LogDriverName" id="log-driver">
-                    <option selected value="">Default logging driver</option>                    
+                    <option selected value="">Default logging driver</option>
                     <option ng-repeat="driver in availableLoggingDrivers" ng-value="driver">{{ driver }}</option>
                     <option value="none">none</option>
                   </select>
@@ -247,10 +266,10 @@
                   </div>
                 </div>
                 <!-- logging-opts-input-list -->
-              </div>              
+              </div>
               <!-- !logging-opts -->
-                                        
-                  
+
+
             </form>
           </div>
           <!-- !tab-command -->
@@ -296,8 +315,9 @@
                         <!-- volume -->
                         <div class="input-group input-group-sm col-sm-6" ng-if="volume.Type === 'volume'">
                           <span class="input-group-addon">volume</span>
-                          <select class="form-control" ng-model="volume.Source" ng-options="vol.Id|truncate:30 for vol in availableVolumes">
+                          <select class="form-control" ng-model="volume.Source">
                             <option selected disabled hidden value="">Select a volume</option>
+                            <option ng-repeat="vol in availableVolumes" ng-value="vol.Id">{{ vol.Id|truncate:30}} - {{ vol.Driver|truncate:30}}</option>
                           </select>
                         </div>
                         <!-- !volume -->
@@ -335,7 +355,7 @@
                 <div class="col-sm-9">
                   <select class="form-control" ng-model="formValues.Network">
                     <option selected disabled hidden value="">Select a network</option>
-                    <option ng-repeat="net in availableNetworks" ng-value="net.Name">{{ net.Name }}</option>
+                    <option ng-repeat="net in availableNetworks | orderBy: 'Name'" ng-value="net.Name">{{ net.Name }}</option>
                   </select>
                 </div>
                 <div class="col-sm-2"></div>

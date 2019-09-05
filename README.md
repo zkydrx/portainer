@@ -1,26 +1,19 @@
-
 <p align="center">
-  <img title="portainer" src='https://portainer.io/images/logo_alt.png' />
+  <img title="portainer" src='https://github.com/portainer/portainer/blob/develop/assets/images/logo_alt.png?raw=true' />
 </p>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/portainer/portainer.svg)](https://hub.docker.com/r/portainer/portainer/)
 [![Microbadger](https://images.microbadger.com/badges/image/portainer/portainer.svg)](http://microbadger.com/images/portainer/portainer "Image size")
 [![Documentation Status](https://readthedocs.org/projects/portainer/badge/?version=stable)](http://portainer.readthedocs.io/en/stable/?badge=stable)
-[![Codefresh build status]( https://g.codefresh.io/api/badges/build?repoOwner=portainer&repoName=portainer&branch=develop&pipelineName=portainer-ci&accountName=deviantony&type=cf-1)]( https://g.codefresh.io/repositories/portainer/portainer/builds?filter=trigger:build;branch:develop;service:5922a08a3a1aab000116fcc6~portainer-ci)
+[![Build Status](https://portainer.visualstudio.com/Portainer%20CI/_apis/build/status/Portainer%20CI?branchName=develop)](https://portainer.visualstudio.com/Portainer%20CI/_build/latest?definitionId=3&branchName=develop)
 [![Code Climate](https://codeclimate.com/github/portainer/portainer/badges/gpa.svg)](https://codeclimate.com/github/portainer/portainer)
-[![Slack](https://portainer.io/slack/badge.svg)](https://portainer.io/slack/)
-[![Gitter](https://badges.gitter.im/portainer/Lobby.svg)](https://gitter.im/portainer/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YHXZJQNJQ36H6)
 
 **_Portainer_** is a lightweight management UI which allows you to **easily** manage your different Docker environments (Docker hosts or Swarm clusters).
-
-**_Portainer_** is meant to be as **simple** to deploy as it is to use. It consists of a single container that can run on any Docker engine (can be deployed as Linux container or a Windows native container).
-
-**_Portainer_** allows you to manage your Docker containers, images, volumes, networks and more ! It is compatible with the *standalone Docker* engine and with *Docker Swarm mode*.
+**_Portainer_** is meant to be as **simple** to deploy as it is to use. It consists of a single container that can run on any Docker engine (can be deployed as Linux container or a Windows native container, supports other platforms too).
+**_Portainer_** allows you to manage all your Docker resources (containers, images, volumes, networks and more) ! It is compatible with the *standalone Docker* engine and with *Docker Swarm mode*.
 
 ## Demo
-
-<img src="https://portainer.io/images/screenshots/portainer.gif" width="77%"/>
 
 You can try out the public demo instance: http://demo.portainer.io/ (login with the username **admin** and the password **tryportainer**).
 
@@ -41,10 +34,11 @@ Unlike the public demo, the playground sessions are deleted after 4 hours. Apart
 
 ## Getting help
 
+**NOTE**: You can find more information about Portainer support framework policy here: https://www.portainer.io/2019/04/portainer-support-policy/
+
 * Issues: https://github.com/portainer/portainer/issues
 * FAQ: https://portainer.readthedocs.io/en/latest/faq.html
 * Slack (chat): https://portainer.io/slack/
-* Gitter (chat): https://gitter.im/portainer/Lobby
 
 ## Reporting bugs and contributing
 
@@ -56,8 +50,18 @@ Unlike the public demo, the playground sessions are deleted after 4 hours. Apart
 **_Portainer_** has full support for the following Docker versions:
 
 * Docker 1.10 to the latest version
-* Docker Swarm >= 1.2.3
+* Standalone Docker Swarm >= 1.2.3 _(**NOTE:** Use of Standalone Docker Swarm is being discouraged since the introduction of built-in Swarm Mode in Docker. While older versions of Portainer had support for Standalone Docker Swarm, Portainer 1.17.0 and newer **do not** support it. However, the built-in Swarm Mode of Docker is fully supported.)_
 
 Partial support for the following Docker versions (some features may not be available):
 
 * Docker 1.9
+
+## Licensing
+
+Portainer is licensed under the zlib license. See [LICENSE](./LICENSE) for reference.
+
+Portainer also contains the following code, which is licensed under the [MIT license](https://opensource.org/licenses/MIT):
+
+UI For Docker: Copyright (c) 2013-2016 Michael Crosby (crosbymichael.com), Kevan Ahlquist (kevanahlquist.com), Anthony Lapenna (portainer.io)
+
+rdash-angular: Copyright (c) [2014] [Elliot Hesp]

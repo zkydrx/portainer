@@ -1,6 +1,6 @@
 angular.module('portainer.app')
-.controller('SettingsAuthenticationController', ['$q', '$scope', 'Notifications', 'SettingsService', 'FileUploadService',
-function ($q, $scope, Notifications, SettingsService, FileUploadService) {
+.controller('SettingsAuthenticationController', ['$q', '$scope', '$state', 'Notifications', 'SettingsService', 'FileUploadService', 'TeamService', 'ExtensionService',
+function($q, $scope, $state, Notifications, SettingsService, FileUploadService, TeamService, ExtensionService) {
 
   $scope.state = {
     successfulConnectivityCheck: false,
@@ -14,12 +14,28 @@ function ($q, $scope, Notifications, SettingsService, FileUploadService) {
     TLSCACert: ''
   };
 
+  $scope.goToOAuthExtensionView = function() {
+    $state.go('portainer.extensions.extension', { id: 2 });
+  };
+
+  $scope.isOauthEnabled = function isOauthEnabled() {
+    return $scope.settings && $scope.settings.AuthenticationMethod === 3;
+  };
+
   $scope.addSearchConfiguration = function() {
     $scope.LDAPSettings.SearchSettings.push({ BaseDN: '', UserNameAttribute: '', Filter: '' });
   };
 
   $scope.removeSearchConfiguration = function(index) {
     $scope.LDAPSettings.SearchSettings.splice(index, 1);
+  };
+
+  $scope.addGroupSearchConfiguration = function() {
+    $scope.LDAPSettings.GroupSearchSettings.push({ GroupBaseDN: '', GroupAttribute: '', GroupFilter: '' });
+  };
+
+  $scope.removeGroupSearchConfiguration = function(index) {
+    $scope.LDAPSettings.GroupSearchSettings.splice(index, 1);
   };
 
   $scope.LDAPConnectivityCheck = function() {
@@ -31,11 +47,11 @@ function ($q, $scope, Notifications, SettingsService, FileUploadService) {
 
     $scope.state.connectivityCheckInProgress = true;
     $q.when(!uploadRequired || FileUploadService.uploadLDAPTLSFiles(TLSCAFile, null, null))
-    .then(function success(data) {
+    .then(function success() {
       addLDAPDefaultPort(settings, $scope.LDAPSettings.TLSConfig.TLS);
       return SettingsService.checkLDAPConnectivity(settings);
     })
-    .then(function success(data) {
+    .then(function success() {
       $scope.state.failedConnectivityCheck = false;
       $scope.state.successfulConnectivityCheck = true;
       Notifications.success('Connection to LDAP successful');
@@ -60,11 +76,11 @@ function ($q, $scope, Notifications, SettingsService, FileUploadService) {
 
     $scope.state.actionInProgress = true;
     $q.when(!uploadRequired || FileUploadService.uploadLDAPTLSFiles(TLSCAFile, null, null))
-    .then(function success(data) {
+    .then(function success() {
       addLDAPDefaultPort(settings, $scope.LDAPSettings.TLSConfig.TLS);
       return SettingsService.update(settings);
     })
-    .then(function success(data) {
+    .then(function success() {
       Notifications.success('Authentication settings updated');
     })
     .catch(function error(err) {
@@ -84,12 +100,19 @@ function ($q, $scope, Notifications, SettingsService, FileUploadService) {
   }
 
   function initView() {
-    SettingsService.settings()
+    $q.all({
+      settings: SettingsService.settings(),
+      teams: TeamService.teams(),
+      oauthAuthentication: ExtensionService.extensionEnabled(ExtensionService.EXTENSIONS.OAUTH_AUTHENTICATION)
+    })
     .then(function success(data) {
-      var settings = data;
+      var settings = data.settings;
+      $scope.teams = data.teams;
       $scope.settings = settings;
       $scope.LDAPSettings = settings.LDAPSettings;
+      $scope.OAuthSettings = settings.OAuthSettings;
       $scope.formValues.TLSCACert = settings.LDAPSettings.TLSConfig.TLSCACert;
+      $scope.oauthAuthenticationAvailable = data.oauthAuthentication;
     })
     .catch(function error(err) {
       Notifications.error('Failure', err, 'Unable to retrieve application settings');

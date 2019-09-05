@@ -1,6 +1,8 @@
+import {genericHandler, logsHandler} from './response/handlers';
+
 angular.module('portainer.docker')
-.factory('Container', ['$resource', 'API_ENDPOINT_ENDPOINTS', 'EndpointProvider',
-function ContainerFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider) {
+.factory('Container', ['$resource', 'API_ENDPOINT_ENDPOINTS', 'EndpointProvider', 'ContainersInterceptor',
+function ContainerFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider, ContainersInterceptor) {
   'use strict';
   return $resource(API_ENDPOINT_ENDPOINTS + '/:endpointId/docker/containers/:id/:action', {
     name: '@name',
@@ -9,16 +11,16 @@ function ContainerFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider) {
   {
     query: {
       method: 'GET', params: { all: 0, action: 'json', filters: '@filters' },
-      isArray: true
+      isArray: true, interceptor: ContainersInterceptor, timeout: 15000
     },
     get: {
       method: 'GET', params: { action: 'json' }
     },
     stop: {
-      method: 'POST', params: { id: '@id', t: 5, action: 'stop' }
+      method: 'POST', params: { id: '@id', action: 'stop' }
     },
     restart: {
-      method: 'POST', params: { id: '@id', t: 5, action: 'restart' }
+      method: 'POST', params: { id: '@id', action: 'restart' }
     },
     kill: {
       method: 'POST', params: { id: '@id', action: 'kill' }
@@ -65,6 +67,16 @@ function ContainerFactory($resource, API_ENDPOINT_ENDPOINTS, EndpointProvider) {
     },
     inspect: {
       method: 'GET', params: { id: '@id', action: 'json' }
+    },
+    update: {
+      method: 'POST', params: { id: '@id', action: 'update'}
+    },
+    prune: {
+      method: 'POST', params: { action: 'prune', filters: '@filters' }
+    },
+    resize: {
+      method: 'POST', params: {id: '@id', action: 'resize', h: '@height', w: '@width'},
+      transformResponse: genericHandler, ignoreLoadingBar: true
     }
   });
 }]);

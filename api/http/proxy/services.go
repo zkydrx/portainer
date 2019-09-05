@@ -3,7 +3,7 @@ package proxy
 import (
 	"net/http"
 
-	"github.com/portainer/portainer"
+	"github.com/portainer/portainer/api"
 )
 
 const (
@@ -24,7 +24,7 @@ func serviceListOperation(response *http.Response, executor *operationExecutor) 
 		return err
 	}
 
-	if executor.operationContext.isAdmin {
+	if executor.operationContext.isAdmin || executor.operationContext.endpointResourceAccess {
 		responseArray, err = decorateServiceList(responseArray, executor.operationContext.resourceControls)
 	} else {
 		responseArray, err = filterServiceList(responseArray, executor.operationContext)
@@ -53,17 +53,17 @@ func serviceInspectOperation(response *http.Response, executor *operationExecuto
 
 	serviceID := responseObject[serviceIdentifier].(string)
 	responseObject, access := applyResourceAccessControl(responseObject, serviceID, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
 	serviceLabels := extractServiceLabelsFromServiceInspectObject(responseObject)
 	responseObject, access = applyResourceAccessControlFromLabel(serviceLabels, responseObject, serviceLabelForStackIdentifier, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
-	return rewriteResponse(response, responseObject, http.StatusOK)
+	return rewriteAccessDeniedResponse(response)
 }
 
 // extractServiceLabelsFromServiceInspectObject retrieve the Labels of the service if present.
@@ -118,7 +118,7 @@ func decorateServiceList(serviceData []interface{}, resourceControls []portainer
 // Authorized services are decorated during the process.
 // Resource controls checks are based on: resource identifier, stack identifier (from label).
 // Service object schema reference: https://docs.docker.com/engine/api/v1.28/#operation/ServiceList
-func filterServiceList(serviceData []interface{}, context *restrictedOperationContext) ([]interface{}, error) {
+func filterServiceList(serviceData []interface{}, context *restrictedDockerOperationContext) ([]interface{}, error) {
 	filteredServiceData := make([]interface{}, 0)
 
 	for _, service := range serviceData {
@@ -129,12 +129,13 @@ func filterServiceList(serviceData []interface{}, context *restrictedOperationCo
 
 		serviceID := serviceObject[serviceIdentifier].(string)
 		serviceObject, access := applyResourceAccessControl(serviceObject, serviceID, context)
-		if access {
+		if !access {
 			serviceLabels := extractServiceLabelsFromServiceListObject(serviceObject)
 			serviceObject, access = applyResourceAccessControlFromLabel(serviceLabels, serviceObject, serviceLabelForStackIdentifier, context)
-			if access {
-				filteredServiceData = append(filteredServiceData, serviceObject)
-			}
+		}
+
+		if access {
+			filteredServiceData = append(filteredServiceData, serviceObject)
 		}
 	}
 

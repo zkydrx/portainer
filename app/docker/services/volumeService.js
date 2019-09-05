@@ -1,5 +1,7 @@
+import { VolumeViewModel } from '../models/volume';
+
 angular.module('portainer.docker')
-.factory('VolumeService', ['$q', 'Volume', 'VolumeHelper', 'ResourceControlService', 'UserService', 'TeamService', function VolumeServiceFactory($q, Volume, VolumeHelper, ResourceControlService, UserService, TeamService) {
+.factory('VolumeService', ['$q', 'Volume', 'VolumeHelper', 'ResourceControlService', function VolumeServiceFactory($q, Volume, VolumeHelper, ResourceControlService) {
   'use strict';
   var service = {};
 

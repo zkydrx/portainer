@@ -1,93 +1,148 @@
-angular.module('portainer.docker')
-.controller('CreateConfigController', ['$scope', '$state', 'Notifications', 'ConfigService', 'Authentication', 'FormValidator', 'ResourceControlService',
-function ($scope, $state, Notifications, ConfigService, Authentication, FormValidator, ResourceControlService) {
+import _ from "lodash-es";
+import { AccessControlFormData } from "Portainer/components/accessControlForm/porAccessControlFormModel";
 
-  $scope.formValues = {
-    Name: '',
-    Labels: [],
-    AccessControlData: new AccessControlFormData(),
-    ConfigContent: ''
-  };
+import angular from "angular";
 
-  $scope.state = {
-    formValidationError: ''
-  };
+class CreateConfigController {
+  /* @ngInject */
+  constructor($async, $state, $transition$, Notifications, ConfigService, Authentication, FormValidator, ResourceControlService) {
+    this.$state = $state;
+    this.$transition$ = $transition$;
+    this.Notifications = Notifications;
+    this.ConfigService = ConfigService;
+    this.Authentication = Authentication;
+    this.FormValidator = FormValidator;
+    this.ResourceControlService = ResourceControlService;
+    this.$async = $async;
 
-  $scope.addLabel = function() {
-    $scope.formValues.Labels.push({ name: '', value: ''});
-  };
+    this.formValues = {
+      Name: "",
+      Labels: [],
+      AccessControlData: new AccessControlFormData(),
+      ConfigContent: ""
+    };
 
-  $scope.removeLabel = function(index) {
-    $scope.formValues.Labels.splice(index, 1);
-  };
+    this.state = {
+      formValidationError: ""
+    };
 
-  function prepareLabelsConfig(config) {
-    var labels = {};
-    $scope.formValues.Labels.forEach(function (label) {
+    this.editorUpdate = this.editorUpdate.bind(this);
+    this.createAsync = this.createAsync.bind(this);
+  }
+
+  async $onInit() {
+    if (!this.$transition$.params().id) {
+      this.formValues.displayCodeEditor = true;
+      return;
+    }
+
+    try {
+      let data = await this.ConfigService.config(this.$transition$.params().id);
+      this.formValues.Name = data.Name + "_copy";
+      this.formValues.Data = data.Data;
+      let labels = _.keys(data.Labels);
+      for (let i = 0; i < labels.length; i++) {
+        let labelName = labels[i];
+        let labelValue = data.Labels[labelName];
+        this.formValues.Labels.push({ name: labelName, value: labelValue });
+      }
+      this.formValues.displayCodeEditor = true;
+    } catch (err) {
+      this.formValues.displayCodeEditor = true;
+      this.Notifications.error("Failure", err, "Unable to clone config");
+    }
+  }
+
+  addLabel() {
+    this.formValues.Labels.push({ name: "", value: "" });
+  }
+
+  removeLabel(index) {
+    this.formValues.Labels.splice(index, 1);
+  }
+
+  prepareLabelsConfig(config) {
+    let labels = {};
+    this.formValues.Labels.forEach(function(label) {
       if (label.name && label.value) {
-          labels[label.name] = label.value;
+        labels[label.name] = label.value;
       }
     });
     config.Labels = labels;
   }
 
-  function prepareConfigData(config) {
-    var configData = $scope.formValues.ConfigContent;
+  prepareConfigData(config) {
+    let configData = this.formValues.ConfigContent;
     config.Data = btoa(unescape(encodeURIComponent(configData)));
   }
 
-  function prepareConfiguration() {
-    var config = {};
-    config.Name = $scope.formValues.Name;
-    prepareConfigData(config);
-    prepareLabelsConfig(config);
+  prepareConfiguration() {
+    let config = {};
+    config.Name = this.formValues.Name;
+    this.prepareConfigData(config);
+    this.prepareLabelsConfig(config);
     return config;
   }
 
-  function validateForm(accessControlData, isAdmin) {
-    $scope.state.formValidationError = '';
-    var error = '';
-    error = FormValidator.validateAccessControl(accessControlData, isAdmin);
+  validateForm(accessControlData, isAdmin) {
+    this.state.formValidationError = "";
+    let error = "";
+    error = this.FormValidator.validateAccessControl(
+      accessControlData,
+      isAdmin
+    );
 
     if (error) {
-      $scope.state.formValidationError = error;
+      this.state.formValidationError = error;
       return false;
     }
     return true;
   }
 
-  $scope.create = function () {
-    var accessControlData = $scope.formValues.AccessControlData;
-    var userDetails = Authentication.getUserDetails();
-    var isAdmin = userDetails.role === 1;
+  create() {
+    return this.$async(this.createAsync);
+  }
 
-    if ($scope.formValues.ConfigContent === '') {
-      $scope.state.formValidationError = 'Config content must not be empty';
+  async createAsync() {
+    let accessControlData = this.formValues.AccessControlData;
+    let userDetails = this.Authentication.getUserDetails();
+    let isAdmin = this.Authentication.isAdmin();
+
+    if (this.formValues.ConfigContent === "") {
+      this.state.formValidationError = "Config content must not be empty";
       return;
     }
 
-    if (!validateForm(accessControlData, isAdmin)) {
+    if (!this.validateForm(accessControlData, isAdmin)) {
       return;
     }
 
-    var config = prepareConfiguration();
+    let config = this.prepareConfiguration();
 
-    ConfigService.create(config)
-    .then(function success(data) {
-      var configIdentifier = data.ID;
-      var userId = userDetails.ID;
-      return ResourceControlService.applyResourceControl('config', configIdentifier, userId, accessControlData, []);
-    })
-    .then(function success() {
-      Notifications.success('Config successfully created');
-      $state.go('docker.configs', {}, {reload: true});
-    })
-    .catch(function error(err) {
-      Notifications.error('Failure', err, 'Unable to create config');
-    });
-  };
+    try {
+      let data = await this.ConfigService.create(config);
+      let configIdentifier = data.ID;
+      let userId = userDetails.ID;
+      await this.ResourceControlService.applyResourceControl(
+        "config",
+        configIdentifier,
+        userId,
+        accessControlData,
+        []
+      );
+      this.Notifications.success("Config successfully created");
+      this.$state.go("docker.configs", {}, { reload: true });
+    } catch (err) {
+      this.Notifications.error("Failure", err, "Unable to create config");
+    }
+  }
 
-  $scope.editorUpdate = function(cm) {
-    $scope.formValues.ConfigContent = cm.getValue();
-  };
-}]);
+  editorUpdate(cm) {
+    this.formValues.ConfigContent = cm.getValue();
+  }
+}
+
+export default CreateConfigController;
+angular
+  .module("portainer.docker")
+  .controller("CreateConfigController", CreateConfigController);

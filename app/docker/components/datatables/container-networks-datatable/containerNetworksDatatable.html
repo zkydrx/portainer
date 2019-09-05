@@ -3,17 +3,17 @@
     <rd-widget-body classes="no-padding">
       <div class="toolBar">
         <div class="toolBarTitle">
-          <i class="fa" ng-class="$ctrl.titleIcon" aria-hidden="true" style="margin-right: 2px;"></i> {{ $ctrl.title }}
+          <i class="fa" ng-class="$ctrl.titleIcon" aria-hidden="true" style="margin-right: 2px;"></i> {{ $ctrl.titleText }}
         </div>
       </div>
       <div class="actionBar">
         <form class="form-horizontal">
-          <div class="row">
+          <div class="row" authorization="DockerNetworkConnect">
             <label for="container_network" class="col-sm-3 col-lg-2 control-label text-left">Join a network</label>
             <div class="col-sm-5 col-lg-4">
               <select class="form-control" ng-model="$ctrl.selectedNetwork" id="container_network">
                 <option selected disabled hidden value="">Select a network</option>
-                <option ng-repeat="net in $ctrl.availableNetworks" ng-value="net.Id">{{ net.Name }}</option>
+                <option ng-repeat="net in $ctrl.availableNetworks | orderBy: 'Name'" ng-value="net.Id">{{ net.Name }}</option>
               </select>
             </div>
             <div class="col-sm-1">
@@ -26,7 +26,7 @@
         </form>
       </div>
       <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table table-hover nowrap-cells">
           <thead>
             <tr>
               <th>Network</th>
@@ -38,12 +38,12 @@
           </thead>
           <tbody>
             <tr dir-paginate="(key, value) in $ctrl.dataset | itemsPerPage: $ctrl.state.paginatedItemLimit" ng-class="{active: item.Checked}">
-              <td><a ui-sref="docker.networks.network({ id: value.NetworkID, nodeName: $ctrl.nodeName })">{{ key }}</a></td>
+              <td><a ui-sref="docker.networks.network({ id: key, nodeName: $ctrl.nodeName })">{{ key }}</a></td>
               <td>{{ value.IPAddress || '-' }}</td>
               <td>{{ value.Gateway || '-' }}</td>
               <td>{{ value.MacAddress || '-' }}</td>
-              <td>
-                <button type="button" class="btn btn-xs btn-danger" ng-disabled="$ctrl.leaveNetworkActionInProgress" button-spinner="$ctrl.leaveNetworkActionInProgress" ng-click="$ctrl.leaveNetworkAction($ctrl.container, value.NetworkID)">
+              <td authorization="DockerNetworkDisconnect">
+                <button type="button" class="btn btn-xs btn-danger" ng-disabled="$ctrl.leaveNetworkActionInProgress" button-spinner="$ctrl.leaveNetworkActionInProgress" ng-click="$ctrl.leaveNetworkAction($ctrl.container, key)">
                   <span ng-hide="$ctrl.leaveNetworkActionInProgress"><i class="fa fa-trash-alt space-right" aria-hidden="true"></i> Leave network</span>
                   <span ng-show="$ctrl.leaveNetworkActionInProgress">Leaving network...</span>
                 </button>

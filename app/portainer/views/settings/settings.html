@@ -1,24 +1,22 @@
 <rd-header>
-  <rd-header-title title="Settings"></rd-header-title>
+  <rd-header-title title-text="Settings"></rd-header-title>
   <rd-header-content>Settings</rd-header-content>
 </rd-header>
 
 <div class="row">
   <div class="col-sm-12">
     <rd-widget>
-      <rd-widget-header icon="fa-cogs" title="Application settings"></rd-widget-header>
+      <rd-widget-header icon="fa-cogs" title-text="Application settings"></rd-widget-header>
       <rd-widget-body>
         <form class="form-horizontal">
+          <!-- snapshot-interval -->
           <div class="form-group">
-            <div class="col-sm-12">
-              <label for="toggle_donation" class="control-label text-left">
-                Disable donation header
-              </label>
-              <label class="switch" style="margin-left: 20px;">
-                <input type="checkbox" name="toggle_donation" ng-model="formValues.donationHeader"><i></i>
-              </label>
+            <label for="snapshot_interval" class="col-sm-2 control-label text-left">Snapshot interval</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" ng-model="settings.SnapshotInterval" id="snapshot_interval" placeholder="e.g. 15m">
             </div>
           </div>
+          <!-- !snapshot-interval -->
           <!-- logo -->
           <div class="form-group">
             <div class="col-sm-12">
@@ -46,6 +44,37 @@
             </div>
           </div>
           <!-- !logo -->
+          <!-- templates -->
+          <div class="col-sm-12 form-section-title">
+            App Templates
+          </div>
+          <div class="form-group">
+            <div class="col-sm-12">
+              <label for="toggle_templates" class="control-label text-left">
+                Use external templates
+                <portainer-tooltip position="bottom" message="When using external templates, in-app template management will be disabled."></portainer-tooltip>
+              </label>
+              <label class="switch" style="margin-left: 20px;">
+                <input type="checkbox" name="toggle_templates" ng-model="formValues.externalTemplates"><i></i>
+              </label>
+            </div>
+          </div>
+          <div ng-if="formValues.externalTemplates">
+            <div class="form-group">
+              <span class="col-sm-12 text-muted small">
+                You can specify the URL to your own template definitions file here. See <a href="https://portainer.readthedocs.io/en/stable/templates.html" target="_blank">Portainer documentation</a> for more details.
+              </span>
+            </div>
+            <div class="form-group" >
+              <label for="templates_url" class="col-sm-1 control-label text-left">
+                URL
+              </label>
+              <div class="col-sm-11">
+                <input type="text" class="form-control" ng-model="settings.TemplatesURL" id="templates_url" placeholder="https://myserver.mydomain/templates.json">
+              </div>
+            </div>
+          </div>
+          <!-- !templates -->
           <!-- security -->
           <div class="col-sm-12 form-section-title">
             Security
@@ -72,48 +101,34 @@
               </label>
             </div>
           </div>
-          <!-- security -->
-          <!-- app-templates -->
+          <div class="form-group">
+            <div class="col-sm-12">
+              <label for="toggle_enableHostManagementFeatures" class="control-label text-left">
+                Enable host management features
+                <portainer-tooltip position="bottom" message="Enables host management features: host scheduler, host browsing and command execution. You'll need to set the CAP_HOST_MANAGEMENT variable when deploying the Portainer agent to use some of these features."></portainer-tooltip>
+              </label>
+              <label class="switch" style="margin-left: 20px;">
+                <input type="checkbox" name="toggle_enableHostManagementFeatures" ng-model="formValues.enableHostManagementFeatures"><i></i>
+              </label>
+            </div>
+          </div>
+          <!-- !security -->
+          <!-- edge -->
           <div class="col-sm-12 form-section-title">
-            App Templates
+            Edge
           </div>
           <div class="form-group">
             <div class="col-sm-12">
-              <label for="toggle_templates" class="control-label text-left">
-                Use custom templates
+              <label for="edge_checkin" class="col-sm-3 control-label text-left">
+                Edge agent poll frequency
+                <portainer-tooltip position="bottom" message="Specify the interval used by each Edge agent to checkin with the Portainer instance"></portainer-tooltip>
               </label>
-              <label class="switch" style="margin-left: 20px;">
-                <input type="checkbox" name="toggle_templates" ng-model="formValues.customTemplates"><i></i>
-              </label>
-            </div>
-          </div>
-          <div ng-if="formValues.customTemplates">
-            <div class="form-group">
-              <span class="col-sm-12 text-muted small">
-                You can specify the URL to your own template definitions file here. See <a href="https://portainer.readthedocs.io/en/stable/templates.html" target="_blank">Portainer documentation</a> for more details.
-              </span>
-            </div>
-            <div class="form-group" >
-              <label for="templates_url" class="col-sm-1 control-label text-left">
-                URL
-              </label>
-              <div class="col-sm-11">
-                <input type="text" class="form-control" ng-model="settings.TemplatesURL" id="templates_url" placeholder="https://myserver.mydomain/templates.json">
+              <div class="col-sm-9">
+                <select id="edge_checkin" class="form-control" ng-model="settings.EdgeAgentCheckinInterval" ng-options="+(opt.value) as opt.key for opt in state.availableEdgeAgentCheckinOptions"></select>
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <div class="col-sm-12">
-              <label for="toggle_external_contrib" class="control-label text-left">
-                Hide external contributions
-                <portainer-tooltip position="bottom" message="When enabled, external contributions such as LinuxServer.io will not be displayed in the sidebar."></portainer-tooltip>
-              </label>
-              <label class="switch" style="margin-left: 20px;">
-                <input type="checkbox" name="toggle_external_contrib" ng-model="formValues.externalContributions"><i></i>
-              </label>
-            </div>
-          </div>
-          <!-- !app-templates -->
+          <!-- !edge -->
           <!-- actions -->
           <div class="form-group">
             <div class="col-sm-12">
@@ -133,7 +148,7 @@
 <div class="row">
   <div class="col-sm-12">
     <rd-widget>
-      <rd-widget-header icon="fa-tags" title="Hidden containers"></rd-widget-header>
+      <rd-widget-header icon="fa-tags" title-text="Hidden containers"></rd-widget-header>
       <rd-widget-body>
         <form class="form-horizontal" ng-submit="addFilteredContainerLabel()" name="addTagForm">
           <div class="form-group">
